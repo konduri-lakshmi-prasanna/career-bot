@@ -23,7 +23,7 @@ When a student shares their skills or interests, provide:
 1. 🎯 Top 3 career paths that suit them
 2. 📚 Key skills needed for each path
 3. 🏫 Courses or degrees to pursue
-4. 💰 Approximate entry-level salary range
+4. 💰 Approximate monthly salary range
 5. 💡 One motivational tip
 Keep it clear, structured, and encouraging."""
             },
