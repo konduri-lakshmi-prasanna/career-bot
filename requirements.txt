@@ -1,3 +1,11 @@
 streamlit
-groq
 python-dotenv
+groq
+langchain==0.2.16
+langchain-core==0.2.38
+langchain-community==0.2.16
+langchain-groq
+faiss-cpu
+sentence-transformers
+pypdf
+ 

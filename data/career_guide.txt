@@ -1,0 +1,38 @@
+SOFTWARE ENGINEER
+Required Skills: Python, Java, DSA, Problem Solving, System Design
+Courses: B.Tech Computer Science, BCA, MCA
+Top Colleges: IIT, NIT, BITS Pilani, VIT, SRM
+Fresher Salary: ₹30,000 – ₹60,000/month
+Experienced Salary (3-5 yrs): ₹80,000 – ₹2,00,000/month
+Top Companies: TCS, Infosys, Wipro, Google, Microsoft, Amazon, Flipkart
+
+DATA SCIENTIST
+Required Skills: Python, Machine Learning, Statistics, SQL, Tableau
+Courses: B.Tech, M.Tech, MCA, MBA Analytics, PG Diploma in Data Science
+Top Colleges: IIT, ISI Kolkata, IIIT Hyderabad, Manipal
+Fresher Salary: ₹40,000 – ₹80,000/month
+Experienced Salary: ₹1,20,000 – ₹3,00,000/month
+Top Companies: Amazon, Flipkart, Mu Sigma, Fractal Analytics, IBM
+
+DOCTOR (MBBS)
+Required Skills: Biology, Chemistry, Patient Care, Diagnosis
+Courses: MBBS, MD, MS (after NEET exam)
+Top Colleges: AIIMS, CMC Vellore, JIPMER, Armed Forces Medical College
+Fresher Salary: ₹40,000 – ₹70,000/month
+Specialist Salary: ₹1,00,000 – ₹3,00,000/month
+Top Sectors: Government Hospitals, Private Hospitals, Clinics
+
+CHARTERED ACCOUNTANT
+Required Skills: Accounting, Taxation, Auditing, Finance, Tally
+Courses: CA Foundation → Intermediate → Final (ICAI)
+Fresher Salary: ₹40,000 – ₹80,000/month
+Senior CA Salary: ₹1,00,000 – ₹2,50,000/month
+Top Companies: Big 4 (Deloitte, PwC, EY, KPMG), Banks, Corporates
+
+GRAPHIC DESIGNER
+Required Skills: Photoshop, Illustrator, Figma, Creativity, Branding
+Courses: B.Des, Diploma in Graphic Design, Fine Arts
+Top Colleges: NID, NIFT, Symbiosis Institute of Design
+Fresher Salary: ₹15,000 – ₹30,000/month
+Experienced Salary: ₹50,000 – ₹1,20,000/month
+Top Companies: Agencies, Startups, Media Companies, Freelance
