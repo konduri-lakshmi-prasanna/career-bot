@@ -628,15 +628,9 @@ with st.sidebar:
             else:
                 st.error("❌ No valid documents found in the data folder.")
 
-    # Auto-load existing index only if no chain exists and no new uploads happened
+    # Only show hint if no documents have been uploaded yet
     if st.session_state.rag_chain is None:
-        vectorstore = load_index()
-        if vectorstore:
-            chain, retriever = build_chain(vectorstore)
-            st.session_state.rag_chain  = chain
-            st.session_state.retriever  = retriever
-        else:
-            st.info("💡 Upload documents above — the knowledge base will be built automatically.")
+        st.info("💡 Upload your documents above — the knowledge base will be built automatically.")
 
     st.divider()
 
