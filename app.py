@@ -29,7 +29,6 @@ st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Sora:wght@600;700&display=swap');
 
-/* ── Root palette ────────────────────────────────────────────── */
 :root {
     --brand:        #5C6CF2;
     --brand-light:  #E8EAFF;
@@ -58,7 +57,6 @@ st.markdown("""
     --shadow-lg:    0 8px 32px rgba(26,29,46,0.14);
 }
 
-/* ── Base resets ──────────────────────────────────────────────── */
 html, body, [class*="css"] {
     font-family: 'Inter', -apple-system, sans-serif;
     color: var(--text-primary);
@@ -68,24 +66,18 @@ html, body, [class*="css"] {
     max-width: 1200px;
 }
 
-/* ── Hide Streamlit defaults ──────────────────────────────────── */
 #MainMenu, footer, header { visibility: hidden; }
 .stDeployButton { display: none !important; }
 
-/* ── Sidebar ──────────────────────────────────────────────────── */
 [data-testid="stSidebar"] {
     background: var(--text-primary);
     border-right: 1px solid #2A2D3E;
 }
-[data-testid="stSidebar"] * {
-    color: #C8CADB !important;
-}
+[data-testid="stSidebar"] * { color: #C8CADB !important; }
 [data-testid="stSidebar"] h1,
 [data-testid="stSidebar"] h2,
 [data-testid="stSidebar"] h3,
-[data-testid="stSidebar"] label {
-    color: #FFFFFF !important;
-}
+[data-testid="stSidebar"] label { color: #FFFFFF !important; }
 [data-testid="stSidebar"] .stButton > button {
     background: var(--brand) !important;
     color: #ffffff !important;
@@ -113,9 +105,7 @@ html, body, [class*="css"] {
     border-radius: var(--radius-md) !important;
     padding: 0.8rem !important;
 }
-[data-testid="stSidebar"] .stDivider {
-    border-color: #2A2D3E !important;
-}
+[data-testid="stSidebar"] .stDivider { border-color: #2A2D3E !important; }
 [data-testid="stSidebar"] .stSuccess > div {
     background: #1A3A2A !important;
     color: #4ADE80 !important;
@@ -132,7 +122,6 @@ html, body, [class*="css"] {
     border: 1px solid #1D4ED8 !important;
 }
 
-/* ── Hero header ─────────────────────────────────────────────── */
 .hero-block {
     background: linear-gradient(135deg, var(--brand) 0%, var(--brand-dark) 60%, #2D1B8A 100%);
     border-radius: var(--radius-xl);
@@ -188,7 +177,6 @@ html, body, [class*="css"] {
     backdrop-filter: blur(8px);
 }
 
-/* ── Tabs ────────────────────────────────────────────────────── */
 .stTabs [data-baseweb="tab-list"] {
     background: var(--surface-2);
     border-radius: var(--radius-lg);
@@ -216,14 +204,9 @@ html, body, [class*="css"] {
     box-shadow: var(--shadow-sm) !important;
     font-weight: 600 !important;
 }
-.stTabs [data-baseweb="tab-highlight"] {
-    display: none !important;
-}
-.stTabs [data-baseweb="tab-border"] {
-    display: none !important;
-}
+.stTabs [data-baseweb="tab-highlight"] { display: none !important; }
+.stTabs [data-baseweb="tab-border"]    { display: none !important; }
 
-/* ── Buttons ─────────────────────────────────────────────────── */
 .stButton > button {
     background: var(--brand) !important;
     color: #ffffff !important;
@@ -242,11 +225,8 @@ html, body, [class*="css"] {
     transform: translateY(-2px) !important;
     box-shadow: 0 6px 20px rgba(92,108,242,0.4) !important;
 }
-.stButton > button:active {
-    transform: translateY(0) !important;
-}
+.stButton > button:active { transform: translateY(0) !important; }
 
-/* ── Chat messages ───────────────────────────────────────────── */
 [data-testid="stChatMessage"] {
     border-radius: var(--radius-lg) !important;
     margin-bottom: 0.75rem !important;
@@ -258,9 +238,7 @@ html, body, [class*="css"] {
     background: var(--brand-light) !important;
     border-color: #C5CAFF !important;
 }
-[data-testid="stChatMessage"][data-testid*="assistant"] {
-    background: var(--surface) !important;
-}
+[data-testid="stChatMessage"][data-testid*="assistant"] { background: var(--surface) !important; }
 .stChatInput textarea {
     border-radius: var(--radius-lg) !important;
     border: 1.5px solid var(--border) !important;
@@ -276,7 +254,6 @@ html, body, [class*="css"] {
     box-shadow: 0 0 0 3px rgba(92,108,242,0.12) !important;
 }
 
-/* ── Select boxes and text inputs ────────────────────────────── */
 .stSelectbox [data-baseweb="select"] > div:first-child,
 .stTextInput input,
 .stTextArea textarea {
@@ -293,7 +270,6 @@ html, body, [class*="css"] {
     box-shadow: 0 0 0 3px rgba(92,108,242,0.1) !important;
 }
 
-/* ── Expanders ───────────────────────────────────────────────── */
 .stExpander {
     border-radius: var(--radius-md) !important;
     border: 1px solid var(--border) !important;
@@ -308,7 +284,6 @@ html, body, [class*="css"] {
     color: var(--text-secondary) !important;
 }
 
-/* ── Section cards ───────────────────────────────────────────── */
 .section-card {
     background: var(--surface);
     border: 1px solid var(--border);
@@ -324,8 +299,7 @@ html, body, [class*="css"] {
     margin-bottom: 0.4rem;
 }
 .section-icon {
-    width: 36px;
-    height: 36px;
+    width: 36px; height: 36px;
     border-radius: var(--radius-sm);
     background: var(--brand-light);
     display: flex;
@@ -348,7 +322,6 @@ html, body, [class*="css"] {
     padding-left: 46px;
 }
 
-/* ── Status badges ───────────────────────────────────────────── */
 .badge {
     display: inline-flex;
     align-items: center;
@@ -364,7 +337,6 @@ html, body, [class*="css"] {
 .badge-info    { background: var(--brand-light); color: var(--brand); }
 .badge-error   { background: var(--danger-bg); color: var(--danger); }
 
-/* ── Status indicator ────────────────────────────────────────── */
 .status-bar {
     display: flex;
     align-items: center;
@@ -398,7 +370,6 @@ html, body, [class*="css"] {
     50%       { opacity: 0.4; }
 }
 
-/* ── File chip ───────────────────────────────────────────────── */
 .file-chip {
     display: flex;
     align-items: center;
@@ -412,58 +383,27 @@ html, body, [class*="css"] {
     margin-bottom: 6px;
 }
 
-/* ── Alerts / info boxes ─────────────────────────────────────── */
 .stAlert > div {
     border-radius: var(--radius-md) !important;
     border: 1px solid var(--border) !important;
 }
+.stSpinner > div { border-top-color: var(--brand) !important; }
 
-/* ── Spinner ─────────────────────────────────────────────────── */
-.stSpinner > div {
-    border-top-color: var(--brand) !important;
-}
-
-/* ── Divider ─────────────────────────────────────────────────── */
 hr {
     border: none !important;
     border-top: 1px solid var(--border) !important;
     margin: 1.5rem 0 !important;
 }
 
-/* ── Quick action grid ───────────────────────────────────────── */
-.quick-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-    margin-bottom: 1.5rem;
-}
-.quick-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-md);
-    padding: 1rem;
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-.quick-card:hover {
-    border-color: var(--brand);
-    box-shadow: 0 0 0 3px rgba(92,108,242,0.08);
-}
-
-/* ── Columns gap fix ─────────────────────────────────────────── */
-[data-testid="column"] {
-    padding: 0 0.5rem !important;
-}
+[data-testid="column"] { padding: 0 0.5rem !important; }
 [data-testid="column"]:first-child { padding-left: 0 !important; }
 [data-testid="column"]:last-child  { padding-right: 0 !important; }
 
-/* ── Scrollbar ───────────────────────────────────────────────── */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: #C5C8D8; border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: #9EA5B5; }
 
-/* ── Responsive tweaks ───────────────────────────────────────── */
 @media (max-width: 768px) {
     .hero-title { font-size: 1.6rem; }
     .hero-block { padding: 1.5rem; }
@@ -497,13 +437,17 @@ def get_llm():
 # ─────────────────────────────────────────────────────────────────────────────
 # FAISS HELPERS
 # ─────────────────────────────────────────────────────────────────────────────
-def build_index():
+def build_index(only_files=None):
+    """Build FAISS index. If only_files is given, index only those filenames."""
     embeddings = get_embeddings()
     documents  = []
-    splitter   = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=60)
+    splitter   = RecursiveCharacterTextSplitter(chunk_size=800, chunk_overlap=100)
 
-    for filename in os.listdir(DATA_FOLDER):
+    target_files = only_files or os.listdir(DATA_FOLDER)
+    for filename in target_files:
         filepath = os.path.join(DATA_FOLDER, filename)
+        if not os.path.exists(filepath):
+            continue
         try:
             if filename.endswith(".pdf"):
                 loader = PyPDFLoader(filepath)
@@ -511,7 +455,11 @@ def build_index():
                 loader = TextLoader(filepath, encoding="utf-8")
             else:
                 continue
-            documents += loader.load()
+            loaded = loader.load()
+            # Tag each doc with source filename for transparency
+            for doc in loaded:
+                doc.metadata["source_file"] = filename
+            documents += loaded
         except Exception as e:
             st.sidebar.warning(f"⚠️ Could not load **{filename}**: {e}")
 
@@ -537,22 +485,30 @@ def load_index():
     return None
 
 # ─────────────────────────────────────────────────────────────────────────────
-# RAG CHAIN
+# RAG CHAIN  ← STRICT: refuses to answer if context is empty
 # ─────────────────────────────────────────────────────────────────────────────
 def build_chain(vectorstore):
-    retriever = vectorstore.as_retriever(search_kwargs={"k": 5})
+    retriever = vectorstore.as_retriever(search_kwargs={"k": 6})
     llm       = get_llm()
 
-    prompt_template = """You are CareerBot — an expert AI career guidance counsellor for students in India.
-Use ONLY the context retrieved from the student's uploaded documents to answer accurately.
-Always base your answer on what is in the document. Be specific, practical, and encouraging.
+    prompt_template = """You are CareerBot — an AI career guidance assistant.
 
-Context from uploaded documents:
+You MUST answer ONLY using the document excerpts provided below in the CONTEXT section.
+Do NOT use your own training knowledge. Do NOT guess or fabricate any information.
+
+RULES:
+- If CONTEXT is empty or says "[NO DOCUMENTS]", reply: "📂 No relevant information found in your uploaded documents. Please upload documents and rebuild the knowledge base."
+- If CONTEXT exists but doesn't have enough info for the question, say so honestly and suggest uploading more documents.
+- Quote or paraphrase directly from the CONTEXT. Cite which document section you are referencing.
+- Use structured formatting with markdown headers and bullet points.
+
+--- CONTEXT FROM UPLOADED DOCUMENTS ---
 {context}
+--- END CONTEXT ---
 
-Question: {question}
+User Question: {question}
 
-Answer clearly with structured formatting, using relevant emoji headers where helpful."""
+Answer (based strictly on the above context):"""
 
     prompt = PromptTemplate(
         template=prompt_template,
@@ -560,7 +516,13 @@ Answer clearly with structured formatting, using relevant emoji headers where he
     )
 
     def format_docs(docs):
-        return "\n\n".join(doc.page_content for doc in docs)
+        if not docs:
+            return "[NO DOCUMENTS]"
+        parts = []
+        for i, doc in enumerate(docs, 1):
+            source = doc.metadata.get("source_file", doc.metadata.get("source", "unknown"))
+            parts.append(f"[Document {i} — {source}]:\n{doc.page_content}")
+        return "\n\n".join(parts)
 
     chain = (
         {"context": retriever | format_docs, "question": RunnablePassthrough()}
@@ -571,11 +533,15 @@ Answer clearly with structured formatting, using relevant emoji headers where he
     return chain, retriever
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+# QUICK ACTION HELPER
+# ─────────────────────────────────────────────────────────────────────────────
 def run_quick_action(query: str) -> str:
     if st.session_state.rag_chain:
         with st.spinner("Analysing your documents…"):
             return st.session_state.rag_chain.invoke(query)
-    return "⚠️ Please upload documents and build the knowledge base first."
+    # ── CHANGED: clear no-document message ──────────────────────────────────
+    return "📂 No documents uploaded yet. Please upload your **Resume**, **Marksheet**, or **Certificates** (PDF or TXT) in the sidebar and click **⚡ Build Knowledge Base** before using this feature."
 
 # ─────────────────────────────────────────────────────────────────────────────
 # SESSION STATE
@@ -632,17 +598,27 @@ with st.sidebar:
         for file in uploaded:
             save_path = os.path.join(DATA_FOLDER, file.name)
             if file.name not in st.session_state.uploaded_files:
-                with open(save_path, "wb") as f:
-                    f.write(file.read())
-                new_files.append(file.name)
-                st.session_state.uploaded_files.append(file.name)
+                file_bytes = file.read()
+                if file_bytes:  # Guard against empty read
+                    with open(save_path, "wb") as f:
+                        f.write(file_bytes)
+                    new_files.append(file.name)
+                    st.session_state.uploaded_files.append(file.name)
         if new_files:
             st.info(f"Saved: {', '.join(new_files)}")
+            # Auto-rebuild index whenever new files are uploaded
+            with st.spinner("Building knowledge base from your documents…"):
+                vectorstore = build_index()
+                if vectorstore:
+                    chain, retriever = build_chain(vectorstore)
+                    st.session_state.rag_chain  = chain
+                    st.session_state.retriever  = retriever
+                    st.success("✅ Knowledge base rebuilt with new documents!")
 
-    # Build index button
     st.markdown("<div style='margin-top:0.75rem'></div>", unsafe_allow_html=True)
-    if st.button("⚡ Build Knowledge Base", use_container_width=True):
-        with st.spinner("Building index…"):
+
+    if st.button("⚡ Rebuild Knowledge Base", use_container_width=True):
+        with st.spinner("Rebuilding index from all documents…"):
             vectorstore = build_index()
             if vectorstore:
                 chain, retriever = build_chain(vectorstore)
@@ -652,31 +628,26 @@ with st.sidebar:
             else:
                 st.error("❌ No valid documents found in the data folder.")
 
-    # Auto-load existing index silently
+    # Auto-load existing index only if no chain exists and no new uploads happened
     if st.session_state.rag_chain is None:
         vectorstore = load_index()
         if vectorstore:
             chain, retriever = build_chain(vectorstore)
             st.session_state.rag_chain  = chain
             st.session_state.retriever  = retriever
-            st.success("✅ Knowledge base loaded automatically!")
         else:
-            st.info("💡 Add documents and click Build Knowledge Base.")
+            st.info("💡 Upload documents above — the knowledge base will be built automatically.")
 
     st.divider()
 
-    # Uploaded files list
     if st.session_state.uploaded_files:
         st.markdown("<div style='font-size:13px; font-weight:600; color:#fff; margin-bottom:0.5rem;'>📋 Files in Index</div>", unsafe_allow_html=True)
         for fname in st.session_state.uploaded_files:
             ext  = "📄" if fname.endswith(".pdf") else "📝"
             name = fname[:28] + "…" if len(fname) > 30 else fname
-            st.markdown(f"""
-            <div class="file-chip">{ext} {name}</div>
-            """, unsafe_allow_html=True)
+            st.markdown(f'<div class="file-chip">{ext} {name}</div>', unsafe_allow_html=True)
         st.markdown("<br>", unsafe_allow_html=True)
 
-    # Status indicator
     if st.session_state.rag_chain:
         st.markdown("""
         <div class="status-bar ready">
@@ -692,7 +663,6 @@ with st.sidebar:
 
     st.markdown("<br>", unsafe_allow_html=True)
 
-    # Clear chat button
     if st.button("🗑️ Clear Chat History", use_container_width=True):
         st.session_state.messages     = []
         st.session_state.quick_result = None
@@ -740,7 +710,6 @@ with tab1:
     </div>
     """, unsafe_allow_html=True)
 
-    # Chat history display
     chat_container = st.container()
     with chat_container:
         for msg in st.session_state.messages:
@@ -756,27 +725,21 @@ with tab1:
 
         with st.chat_message("assistant"):
             if st.session_state.rag_chain:
-                query = f"""Based on the uploaded documents, answer this question for an Indian student:
-{user_input}
-
-Provide a structured answer with:
-1. 🎯 Top Career Paths that suit them
-2. 📚 Key Skills needed
-3. 🏫 Courses or Degrees to pursue (mention Indian universities)
-4. 💰 Realistic Monthly Salary Range in ₹ (fresher AND experienced)
-5. 🏢 Top Indian Companies or Sectors that hire
-6. 💡 One motivational tip tailored to Indian students"""
-
+                # Send the user's question directly — the prompt template handles grounding
                 with st.spinner("Retrieving from your documents…"):
-                    response = st.session_state.rag_chain.invoke(query)
+                    response = st.session_state.rag_chain.invoke(user_input)
                     st.markdown(response)
 
                 with st.expander("📄 Source chunks retrieved from your documents"):
                     source_docs = st.session_state.retriever.invoke(user_input)
-                    for i, doc in enumerate(source_docs, 1):
-                        st.markdown(f"**Chunk {i}:** {doc.page_content[:300]}…")
+                    if source_docs:
+                        for i, doc in enumerate(source_docs, 1):
+                            src = doc.metadata.get("source_file", doc.metadata.get("source", ""))
+                            st.markdown(f"**Chunk {i}** _(from {src})_: {doc.page_content[:400]}…")
+                    else:
+                        st.warning("No relevant chunks found in your documents for this query.")
             else:
-                response = "⚠️ Please upload your documents and click **Build Knowledge Base** in the sidebar first."
+                response = "📂 No knowledge base found. Please upload your **Resume**, **Marksheet**, or **Certificates** (PDF/TXT) in the sidebar to enable document-based answers."
                 st.warning(response)
 
         st.session_state.messages.append({"role": "assistant", "content": response})
@@ -808,7 +771,7 @@ with tab2:
         </div>""", unsafe_allow_html=True)
 
     if run_resume:
-        query = """Analyse the resume from the uploaded document carefully and provide:
+        query = """Analyse ONLY the resume content from the uploaded documents and provide:
 
 1. 📊 Overall Resume Score out of 100
 
@@ -824,7 +787,7 @@ with tab2:
 
 6. 📋 Missing Sections (e.g. LinkedIn, GitHub, achievements, metrics, summary)
 
-Be very specific and base everything on the actual content of the uploaded resume."""
+IMPORTANT: Base everything ONLY on the actual content of the uploaded resume. Do not use outside knowledge."""
 
         result = run_quick_action(query)
         st.session_state.quick_result = ("resume", result)
@@ -836,8 +799,11 @@ Be very specific and base everything on the actual content of the uploaded resum
         with st.expander("📄 Resume chunks used for analysis"):
             if st.session_state.retriever:
                 docs = st.session_state.retriever.invoke("resume skills experience education")
-                for i, doc in enumerate(docs, 1):
-                    st.markdown(f"**Chunk {i}:** {doc.page_content[:300]}…")
+                if docs:
+                    for i, doc in enumerate(docs, 1):
+                        st.markdown(f"**Chunk {i}:** {doc.page_content[:300]}…")
+                else:
+                    st.warning("No resume content found in uploaded documents.")
 
 # ═══════════════════════════════════════════════════════════════════════════
 # TAB 3 — Interview Prep
@@ -871,24 +837,24 @@ with tab3:
     st.markdown("<br>", unsafe_allow_html=True)
 
     if st.button("🎯 Generate My Interview Questions", use_container_width=True, key="interview_btn"):
-        query = f"""Read the uploaded resume carefully and generate {interview_type} questions at {difficulty} for this specific candidate.
+        query = f"""Read ONLY the uploaded resume document and generate {interview_type} questions at {difficulty} for this specific candidate.
 
 Generate exactly:
 
 1. 🔧 5 Technical Questions
-   - Directly based on the skills, projects, and technologies in THEIR resume
+   - Directly based on the skills, projects, and technologies in THEIR uploaded resume
    - Provide the ideal answer for each
 
 2. 🤝 5 HR / Behavioural Questions
-   - Based on their specific experience and background
+   - Based on their specific experience and background from the document
    - Provide the ideal STAR-format answer for each
 
 3. ⭐ 3 Deep-Dive Tricky Questions
    - Questions that test deep understanding of their own listed experience
    - Provide the ideal answer for each
 
-For every question, mention which resume section it comes from.
-Make every question 100% specific to THIS person's resume — no generic filler."""
+For every question, mention which part of the uploaded document it comes from.
+IMPORTANT: Only use information from the uploaded documents. Do not generate generic questions."""
 
         result = run_quick_action(query)
         st.session_state.quick_result = ("interview", result)
@@ -900,8 +866,11 @@ Make every question 100% specific to THIS person's resume — no generic filler.
         with st.expander("📄 Resume sections used for questions"):
             if st.session_state.retriever:
                 docs = st.session_state.retriever.invoke("skills projects experience technologies")
-                for i, doc in enumerate(docs, 1):
-                    st.markdown(f"**Chunk {i}:** {doc.page_content[:300]}…")
+                if docs:
+                    for i, doc in enumerate(docs, 1):
+                        st.markdown(f"**Chunk {i}:** {doc.page_content[:300]}…")
+                else:
+                    st.warning("No relevant content found in uploaded documents.")
 
 # ═══════════════════════════════════════════════════════════════════════════
 # TAB 4 — Career Roadmap
@@ -914,7 +883,7 @@ with tab4:
             <h3 class="section-title">Personalised Career Roadmap</h3>
         </div>
         <p class="section-subtitle">
-            A step-by-step month-by-month career plan built from your actual profile,
+            A step-by-step career plan built from your actual profile,
             with salary projections and target companies.
         </p>
     </div>
@@ -935,43 +904,34 @@ with tab4:
         dream_job_text = (
             f"Their stated dream job is: {target_role}."
             if target_role
-            else "Suggest the best career path based on their profile."
+            else "Suggest the best career path based ONLY on their uploaded profile."
         )
 
-        query = f"""Read the uploaded document (resume or marksheet) carefully and generate a highly personalised career roadmap for this Indian student.
+        query = f"""Read ONLY the uploaded document (resume or marksheet) and generate a personalised career roadmap.
 
 {dream_job_text}
 Timeframe: {timeframe}
 
-Structure your roadmap as follows:
+Structure your roadmap as follows (use ONLY information from the uploaded documents):
 
 1. 📊 Current Profile Assessment
    - Strongest skills and subjects from the document
-   - Current level and readiness score
+   - Current level based on uploaded content
 
 2. 🗺️ Month-by-Month / Quarter-by-Quarter Roadmap for {timeframe}
-   - Specific tasks for each period
-   - What to learn, build, and certify
+   - Specific tasks for each period based on their profile
 
-3. 📚 Specific Courses and Certifications
-   - Free resources (NPTEL, Coursera free, YouTube channels)
-   - Paid resources with estimated cost in ₹
+3. 📚 Specific Courses and Certifications relevant to their background
 
-4. 🏫 Higher Education Options
-   - Indian universities and relevant entrance exams
-   - Pros and cons based on their current profile
+4. 🏫 Higher Education Options relevant to their field
 
-5. 💰 Salary Progression Forecast (in ₹/month)
-   - Starting → Year 1 → Year 3 → Year 5
+5. 💰 Salary Progression Forecast (in ₹/month) based on their domain
 
-6. 🏢 Target Companies (Tier-wise)
-   - Tier 1 (dream), Tier 2 (realistic), Startups
+6. 🏢 Target Companies (Tier-wise) relevant to their skills
 
-7. ⚠️ Skill Gaps to Fill (priority ordered)
-   - What is missing right now
-   - Time to fill each gap
+7. ⚠️ Skill Gaps to Fill based on uploaded document content
 
-Base everything exclusively on their uploaded document content."""
+IMPORTANT: Base the entire roadmap ONLY on the uploaded document content. Do not use outside knowledge."""
 
         result = run_quick_action(query)
         st.session_state.quick_result = ("roadmap", result)
@@ -983,8 +943,11 @@ Base everything exclusively on their uploaded document content."""
         with st.expander("📄 Document sections used for roadmap"):
             if st.session_state.retriever:
                 docs = st.session_state.retriever.invoke("education skills subjects marks experience")
-                for i, doc in enumerate(docs, 1):
-                    st.markdown(f"**Chunk {i}:** {doc.page_content[:300]}…")
+                if docs:
+                    for i, doc in enumerate(docs, 1):
+                        st.markdown(f"**Chunk {i}:** {doc.page_content[:300]}…")
+                else:
+                    st.warning("No relevant content found in uploaded documents.")
 
 # ═══════════════════════════════════════════════════════════════════════════
 # TAB 5 — Job Match
@@ -1015,20 +978,20 @@ with tab5:
         if not job_description.strip():
             st.warning("⚠️ Please paste a job description above before checking.")
         else:
-            query = f"""I have uploaded my resume. Compare it carefully against this job description and give a detailed match analysis.
+            query = f"""Compare ONLY my uploaded resume against this job description and give a detailed match analysis.
 
 JOB DESCRIPTION:
 {job_description}
 
-Provide:
+Provide (using ONLY my uploaded resume content):
 
-1. 🎯 Overall Match Score (X / 100)
+1. 🎯 Overall Match Score (X / 100) based on skills found in my resume vs JD requirements
 
 2. ✅ Skills I Have That Match the JD
-   - List each matching skill found in my resume
+   - List each matching skill found in my uploaded resume
 
 3. ❌ Skills I Am Missing
-   - List each required JD skill not in my resume
+   - List each required JD skill NOT found in my uploaded resume
    - Mark each as High / Medium / Low priority
 
 4. 📚 How to Fill the Skill Gaps
@@ -1036,14 +999,14 @@ Provide:
    - Estimated time to learn each
 
 5. 💡 How to Rewrite My Resume for This Specific Job
-   - Exact lines to change or add
+   - Exact lines from my uploaded resume to change or strengthen
    - Keywords from the JD to incorporate
 
 6. 🏆 Final Verdict
    - Should I apply now or prepare more?
-   - If prepare — give exact realistic timeline
+   - If prepare — give realistic timeline
 
-Base the entire analysis on the actual content of my uploaded resume."""
+IMPORTANT: Only use content from the uploaded resume. Do not guess or fabricate skills."""
 
             result = run_quick_action(query)
             st.session_state.quick_result = ("jobmatch", result)
@@ -1055,5 +1018,8 @@ Base the entire analysis on the actual content of my uploaded resume."""
         with st.expander("📄 Resume sections compared with JD"):
             if st.session_state.retriever:
                 docs = st.session_state.retriever.invoke("skills experience projects technologies")
-                for i, doc in enumerate(docs, 1):
-                    st.markdown(f"**Chunk {i}:** {doc.page_content[:300]}…")
+                if docs:
+                    for i, doc in enumerate(docs, 1):
+                        st.markdown(f"**Chunk {i}:** {doc.page_content[:300]}…")
+                else:
+                    st.warning("No relevant resume content found in uploaded documents.")

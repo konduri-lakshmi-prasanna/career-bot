@@ -7,5 +7,5 @@ langchain-community==0.2.16
 langchain-groq
 faiss-cpu
 sentence-transformers
-pypdf
- 
+langchain-huggingface
+pypdf
