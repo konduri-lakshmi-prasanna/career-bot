@@ -1,11 +1,28 @@
+# ── Core Streamlit & environment ─────────────────────────────────────────────
 streamlit
 python-dotenv
+
+# ── LLM / LangChain stack ────────────────────────────────────────────────────
 groq
 langchain==0.2.16
 langchain-core==0.2.38
 langchain-community==0.2.16
 langchain-groq
+langchain-huggingface
+
+# ── Vector store & embeddings ────────────────────────────────────────────────
 faiss-cpu
 sentence-transformers
-langchain-huggingface
-pypdf
+
+# ── PDF loading (text-based PDFs) ────────────────────────────────────────────
+pypdf
+
+# ── OCR stack ────────────────────────────────────────────────────────────────
+# Tesseract wrapper (requires system package: sudo apt-get install tesseract-ocr)
+pytesseract
+
+# PDF → image rasteriser (requires system package: sudo apt-get install poppler-utils)
+pdf2image
+
+# Image processing
+Pillow
