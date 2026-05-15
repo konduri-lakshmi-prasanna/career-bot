@@ -8,7 +8,7 @@ from typing import List
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_core.documents import Document
 
-from config import CHUNK_SIZE, CHUNK_OVERLAP
+from core.config import CHUNK_SIZE, CHUNK_OVERLAP
 
 
 def chunk_documents(documents: List[Document]) -> List[Document]:

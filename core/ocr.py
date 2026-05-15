@@ -42,6 +42,14 @@ TESSERACT_LANG = "eng"
 PDF_RENDER_DPI = 250
 
 
+# ── Image extensions supported ────────────────────────────────────────────────
+IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".tiff", ".tif", ".bmp", ".webp"}
+
+
+def is_image_file(filename: str) -> bool:
+    return Path(filename).suffix.lower() in IMAGE_EXTENSIONS
+
+
 # ── Internal helpers ──────────────────────────────────────────────────────────
 
 def _preprocess_image(img: Image.Image) -> Image.Image:
@@ -144,11 +152,3 @@ def is_scanned_pdf(filepath: str) -> bool:
         return len(sample_text.strip()) < MIN_TEXT_CHARS
     except Exception:
         return True   # if extraction fails, assume scanned
-
-
-# ── Image extensions supported ────────────────────────────────────────────────
-IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".tiff", ".tif", ".bmp", ".webp"}
-
-
-def is_image_file(filename: str) -> bool:
-    return Path(filename).suffix.lower() in IMAGE_EXTENSIONS

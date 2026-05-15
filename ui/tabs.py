@@ -1,24 +1,37 @@
 """
-ui_tabs.py — Logic for rendering Streamlit tabs.
+tabs.py — Streamlit tab rendering.
+
+Pure presentation — business logic delegated to services.actions.
 """
 
 import streamlit as st
 
-from prompts import (
+from core.prompts import (
     resume_analysis_prompt,
     interview_prep_prompt,
     career_roadmap_prompt,
     job_match_prompt,
 )
-from state import set_quick_result
+from services.actions import run_quick_action
+from ui.state import set_quick_result
 
-# Quick Action Helper
-def run_quick_action(query: str) -> str:
-    if st.session_state.rag_chain:
-        with st.spinner("Analysing your documents…"):
-            return st.session_state.rag_chain.invoke(query)
-    return "📂 No documents uploaded yet. Please upload your **Resume**, **Marksheet**, or **Certificates** (PDF or TXT) in the sidebar and click **⚡ Build Knowledge Base** before using this feature."
 
+# ── Helpers ──────────────────────────────────────────────────────────────────
+
+def _show_source_chunks(query: str):
+    """Render an expander showing the retrieved source chunks."""
+    with st.expander("📄 Source chunks used"):
+        if st.session_state.retriever:
+            docs = st.session_state.retriever.invoke(query)
+            if docs:
+                for i, doc in enumerate(docs, 1):
+                    src = doc.metadata.get("source_file", doc.metadata.get("source", ""))
+                    st.markdown(f"**Chunk {i}** _(from {src})_: {doc.page_content[:300]}…")
+            else:
+                st.warning("No relevant content found in uploaded documents.")
+
+
+# ── Tab renderers ────────────────────────────────────────────────────────────
 
 def render_career_chat_tab():
     st.markdown("""
@@ -47,17 +60,13 @@ def render_career_chat_tab():
                 with st.spinner("Retrieving from your documents…"):
                     response = st.session_state.rag_chain.invoke(user_input)
                     st.markdown(response)
-
-                with st.expander("📄 Source chunks retrieved from your documents"):
-                    source_docs = st.session_state.retriever.invoke(user_input)
-                    if source_docs:
-                        for i, doc in enumerate(source_docs, 1):
-                            src = doc.metadata.get("source_file", doc.metadata.get("source", ""))
-                            st.markdown(f"**Chunk {i}** _(from {src})_: {doc.page_content[:400]}…")
-                    else:
-                        st.warning("No relevant chunks found in your documents for this query.")
+                _show_source_chunks(user_input)
             else:
-                response = "📂 No knowledge base found. Please upload your **Resume**, **Marksheet**, or **Certificates** (PDF/TXT) in the sidebar to enable document-based answers."
+                response = (
+                    "📂 No knowledge base found. Please upload your **Resume**, "
+                    "**Marksheet**, or **Certificates** (PDF/TXT) in the sidebar "
+                    "to enable document-based answers."
+                )
                 st.warning(response)
 
         st.session_state.messages.append({"role": "assistant", "content": response})
@@ -83,22 +92,13 @@ def render_resume_score_tab():
         </div>""", unsafe_allow_html=True)
 
     if run_resume:
-        query = resume_analysis_prompt()
-        result = run_quick_action(query)
+        result = run_quick_action(resume_analysis_prompt())
         set_quick_result("resume", result)
 
     if st.session_state.quick_result and st.session_state.quick_result[0] == "resume":
         st.divider()
         st.markdown(st.session_state.quick_result[1])
-
-        with st.expander("📄 Resume chunks used for analysis"):
-            if st.session_state.retriever:
-                docs = st.session_state.retriever.invoke("resume skills experience education")
-                if docs:
-                    for i, doc in enumerate(docs, 1):
-                        st.markdown(f"**Chunk {i}:** {doc.page_content[:300]}…")
-                else:
-                    st.warning("No resume content found in uploaded documents.")
+        _show_source_chunks("resume skills experience education")
 
 
 def render_interview_prep_tab():
@@ -125,22 +125,13 @@ def render_interview_prep_tab():
     st.markdown("<br>", unsafe_allow_html=True)
 
     if st.button("🎯 Generate My Interview Questions", use_container_width=True, key="interview_btn"):
-        query = interview_prep_prompt(interview_type, difficulty)
-        result = run_quick_action(query)
+        result = run_quick_action(interview_prep_prompt(interview_type, difficulty))
         set_quick_result("interview", result)
 
     if st.session_state.quick_result and st.session_state.quick_result[0] == "interview":
         st.divider()
         st.markdown(st.session_state.quick_result[1])
-
-        with st.expander("📄 Resume sections used for questions"):
-            if st.session_state.retriever:
-                docs = st.session_state.retriever.invoke("skills projects experience technologies")
-                if docs:
-                    for i, doc in enumerate(docs, 1):
-                        st.markdown(f"**Chunk {i}:** {doc.page_content[:300]}…")
-                else:
-                    st.warning("No relevant content found in uploaded documents.")
+        _show_source_chunks("skills projects experience technologies")
 
 
 def render_career_roadmap_tab():
@@ -164,22 +155,13 @@ def render_career_roadmap_tab():
     st.markdown("<br>", unsafe_allow_html=True)
 
     if st.button("🗺️ Generate My Career Roadmap", use_container_width=True, key="roadmap_btn"):
-        query = career_roadmap_prompt(target_role, timeframe)
-        result = run_quick_action(query)
+        result = run_quick_action(career_roadmap_prompt(target_role, timeframe))
         set_quick_result("roadmap", result)
 
     if st.session_state.quick_result and st.session_state.quick_result[0] == "roadmap":
         st.divider()
         st.markdown(st.session_state.quick_result[1])
-
-        with st.expander("📄 Document sections used for roadmap"):
-            if st.session_state.retriever:
-                docs = st.session_state.retriever.invoke("education skills subjects marks experience")
-                if docs:
-                    for i, doc in enumerate(docs, 1):
-                        st.markdown(f"**Chunk {i}:** {doc.page_content[:300]}…")
-                else:
-                    st.warning("No relevant content found in uploaded documents.")
+        _show_source_chunks("education skills subjects marks experience")
 
 
 def render_job_match_tab():
@@ -192,8 +174,7 @@ def render_job_match_tab():
     """, unsafe_allow_html=True)
 
     job_description = st.text_area(
-        "Paste the Job Description here",
-        height=220,
+        "Paste the Job Description here", height=220,
         placeholder="Paste the full job description here — requirements, responsibilities, and skills needed…",
     )
 
@@ -203,19 +184,10 @@ def render_job_match_tab():
         if not job_description.strip():
             st.warning("⚠️ Please paste a job description above before checking.")
         else:
-            query = job_match_prompt(job_description)
-            result = run_quick_action(query)
+            result = run_quick_action(job_match_prompt(job_description))
             set_quick_result("jobmatch", result)
 
     if st.session_state.quick_result and st.session_state.quick_result[0] == "jobmatch":
         st.divider()
         st.markdown(st.session_state.quick_result[1])
-
-        with st.expander("📄 Resume sections compared with JD"):
-            if st.session_state.retriever:
-                docs = st.session_state.retriever.invoke("skills experience projects technologies")
-                if docs:
-                    for i, doc in enumerate(docs, 1):
-                        st.markdown(f"**Chunk {i}:** {doc.page_content[:300]}…")
-                else:
-                    st.warning("No relevant resume content found in uploaded documents.")
+        _show_source_chunks("skills experience projects technologies")

@@ -1,5 +1,5 @@
 """
-ui_styles.py — High-End Command Center Dashboard CSS.
+styles.py — High-End Command Center Dashboard CSS.
 """
 
 def get_custom_css() -> str:

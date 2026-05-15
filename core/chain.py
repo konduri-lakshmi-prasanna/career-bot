@@ -3,13 +3,13 @@ chain.py — RAG chain construction.
 Builds the retrieval-augmented generation chain with a grounded prompt.
 """
 
-import os
 from langchain_groq import ChatGroq
 from langchain_core.prompts import PromptTemplate
 from langchain_core.runnables import RunnablePassthrough
 from langchain_core.output_parsers import StrOutputParser
 
-from config import GROQ_API_KEY, LLM_MODEL, LLM_TEMPERATURE, RETRIEVER_K
+from core.config import GROQ_API_KEY, LLM_MODEL, LLM_TEMPERATURE, RETRIEVER_K
+from core.prompts import RAG_PROMPT
 
 
 # ── Singleton LLM ───────────────────────────────────────────────────────────
@@ -26,27 +26,6 @@ def get_llm() -> ChatGroq:
             temperature=LLM_TEMPERATURE,
         )
     return _llm
-
-
-# ── Prompt Template ──────────────────────────────────────────────────────────
-RAG_PROMPT = """You are CareerBot — an AI career guidance assistant.
-
-You MUST answer ONLY using the document excerpts provided below in the CONTEXT section.
-Do NOT use your own training knowledge. Do NOT guess or fabricate any information.
-
-RULES:
-- If CONTEXT is empty or says "[NO DOCUMENTS]", reply: "📂 No relevant information found in your uploaded documents. Please upload documents and rebuild the knowledge base."
-- If CONTEXT exists but doesn't have enough info for the question, say so honestly and suggest uploading more documents.
-- Quote or paraphrase directly from the CONTEXT. Cite which document section you are referencing.
-- Use structured formatting with markdown headers and bullet points.
-
---- CONTEXT FROM UPLOADED DOCUMENTS ---
-{context}
---- END CONTEXT ---
-
-User Question: {question}
-
-Answer (based strictly on the above context):"""
 
 
 def _format_docs(docs) -> str:

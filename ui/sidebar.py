@@ -1,22 +1,17 @@
 """
-ui_sidebar.py — Sidebar components and file uploading logic.
+sidebar.py — Sidebar components and file uploading logic.
 
-Changes vs. original:
-  • File uploader now accepts image formats (jpg, jpeg, png, tiff, bmp, webp)
-    in addition to pdf and txt.
-  • File list shows an OCR badge next to image files and scanned PDFs.
-  • A small "OCR Active" indicator appears when image/scanned files are loaded.
+Rendering only — pipeline orchestration is delegated to services.pipeline.
 """
 
 import os
 import streamlit as st
 
-from config import DATA_FOLDER
-from vectorstore import build_index
-from chain import build_chain
-from state import set_chain, add_uploaded_file, clear_chat
-from loaders import describe_file_type
-from ocr import IMAGE_EXTENSIONS, is_image_file
+from core.config import DATA_FOLDER
+from core.ocr import IMAGE_EXTENSIONS, is_image_file
+from core.loaders import describe_file_type
+from services.pipeline import rebuild_knowledge_base
+from ui.state import set_chain, add_uploaded_file, clear_chat
 
 
 # All file types the uploader will accept
@@ -31,10 +26,24 @@ def _has_ocr_files() -> bool:
     return False
 
 
+def _handle_rebuild(spinner_msg: str):
+    """Shared logic for building the knowledge base with UI feedback."""
+    with st.spinner(spinner_msg):
+        chain, retriever, errors = rebuild_knowledge_base()
+        if chain:
+            set_chain(chain, retriever)
+            st.success("✅ Knowledge base ready!")
+        else:
+            st.error("❌ No valid documents could be loaded.")
+        if errors:
+            with st.expander("⚠️ Loading warnings"):
+                for err in errors:
+                    st.caption(err)
+
+
 def render_sidebar():
     with st.sidebar:
-
-        # ── Branding ──────────────────────────────────────────────────────────
+        # ── Branding
         st.markdown("""
         <div style="padding: 1.25rem 0 0.5rem;">
             <div style="font-family:'JetBrains Mono', monospace; font-size:1.3rem;
@@ -50,7 +59,7 @@ def render_sidebar():
 
         st.divider()
 
-        # ── Upload section ────────────────────────────────────────────────────
+        # ── Upload section
         st.markdown("""
         <div style="font-size:13px; font-weight:600; color:#fff; margin-bottom:0.5rem;">
             📂 Upload Documents
@@ -61,18 +70,13 @@ def render_sidebar():
         </div>
         """, unsafe_allow_html=True)
 
-        # Accepted types: PDF, TXT, and all common image formats
         uploaded = st.file_uploader(
-            "Choose files",
-            type=_UPLOAD_TYPES,
-            accept_multiple_files=True,
-            label_visibility="collapsed",
+            "Choose files", type=_UPLOAD_TYPES,
+            accept_multiple_files=True, label_visibility="collapsed",
         )
 
         if uploaded:
-            new_files = []
-            ocr_files = []
-
+            new_files, ocr_files = [], []
             for file in uploaded:
                 save_path = os.path.join(DATA_FOLDER, file.name)
                 if file.name not in st.session_state.uploaded_files:
@@ -87,57 +91,29 @@ def render_sidebar():
 
             if new_files:
                 st.info(f"Saved: {', '.join(new_files)}")
-
                 if ocr_files:
                     st.markdown(
                         f"<div style='font-size:11px; color:#00FFCC; margin-bottom:0.4rem;'>"
                         f"🔍 OCR will be applied to: {', '.join(ocr_files)}</div>",
                         unsafe_allow_html=True,
                     )
-
-                # Auto-rebuild whenever new files arrive
-                with st.spinner("Processing documents (OCR if needed)…"):
-                    vectorstore, errors = build_index()
-                    if vectorstore:
-                        chain, retriever = build_chain(vectorstore)
-                        set_chain(chain, retriever)
-                        st.success("✅ Knowledge base rebuilt!")
-                    else:
-                        st.error("❌ No valid documents could be loaded.")
-
-                    if errors:
-                        with st.expander("⚠️ Loading warnings"):
-                            for err in errors:
-                                st.caption(err)
+                _handle_rebuild("Processing documents (OCR if needed)…")
 
         st.markdown("<div style='margin-top:0.75rem'></div>", unsafe_allow_html=True)
 
         if st.button("⚡ Rebuild Knowledge Base", use_container_width=True):
-            with st.spinner("Rebuilding index (OCR applied to images/scanned PDFs)…"):
-                vectorstore, errors = build_index()
-                if vectorstore:
-                    chain, retriever = build_chain(vectorstore)
-                    set_chain(chain, retriever)
-                    st.success("✅ Knowledge base ready!")
-                else:
-                    st.error("❌ No valid documents found in the data folder.")
-
-                if errors:
-                    with st.expander("⚠️ Loading warnings"):
-                        for err in errors:
-                            st.caption(err)
+            _handle_rebuild("Rebuilding index (OCR applied to images/scanned PDFs)…")
 
         if st.session_state.rag_chain is None:
             st.info("💡 Upload your documents — the knowledge base builds automatically.")
 
         st.divider()
 
-        # ── File list ─────────────────────────────────────────────────────────
+        # ── File list
         if st.session_state.uploaded_files:
             st.markdown(
                 "<div style='font-size:13px; font-weight:600; color:#fff; margin-bottom:0.5rem;'>"
-                "📋 Files in Index</div>",
-                unsafe_allow_html=True,
+                "📋 Files in Index</div>", unsafe_allow_html=True,
             )
             for fname in st.session_state.uploaded_files:
                 label = describe_file_type(fname)
@@ -152,10 +128,9 @@ def render_sidebar():
                 )
             st.markdown("<br>", unsafe_allow_html=True)
 
-        # ── Status bar ────────────────────────────────────────────────────────
+        # ── Status bar
         if st.session_state.rag_chain:
-            ocr_active = _has_ocr_files()
-            extra = " + OCR" if ocr_active else ""
+            extra = " + OCR" if _has_ocr_files() else ""
             st.markdown(f"""
             <div class="status-bar ready">
                 <div class="status-dot"></div>
@@ -169,7 +144,6 @@ def render_sidebar():
             </div>""", unsafe_allow_html=True)
 
         st.markdown("<br>", unsafe_allow_html=True)
-
         if st.button("🗑️ Clear Chat History", use_container_width=True):
             clear_chat()
             st.rerun()

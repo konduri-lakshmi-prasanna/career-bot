@@ -9,9 +9,9 @@ from typing import Optional, List
 from langchain_community.vectorstores import FAISS
 from langchain_community.embeddings import HuggingFaceEmbeddings
 
-from config import INDEX_FOLDER, EMBEDDING_MODEL
-from loaders import load_documents
-from chunkers import chunk_documents
+from core.config import INDEX_FOLDER, EMBEDDING_MODEL
+from core.loaders import load_documents
+from core.chunkers import chunk_documents
 
 
 # ── Singleton-style embeddings (cached at module level) ──────────────────────
