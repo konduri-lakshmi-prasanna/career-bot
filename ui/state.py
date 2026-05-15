@@ -1,8 +1,14 @@
 """
 state.py — Streamlit session state management.
+
+Changes vs original:
+  • init_state() adds `all_chunks` key for hybrid retriever.
+  • trim_messages() enforces the memory window on every new message.
+  • set_chain() accepts the optional all_chunks list.
 """
 
 import streamlit as st
+from core.memory import trim_history
 
 
 def init_state():
@@ -11,6 +17,7 @@ def init_state():
         "messages":       [],
         "rag_chain":      None,
         "retriever":      None,
+        "all_chunks":     [],          # NEW — needed by HybridRetriever
         "uploaded_files": [],
         "quick_result":   None,
     }
@@ -36,3 +43,12 @@ def add_uploaded_file(filename: str):
 
 def set_quick_result(tab_key: str, result: str):
     st.session_state.quick_result = (tab_key, result)
+
+
+def append_message(role: str, content: str):
+    """
+    Append a message and trim the history to the configured memory window.
+    Call this instead of st.session_state.messages.append() directly.
+    """
+    st.session_state.messages.append({"role": role, "content": content})
+    st.session_state.messages = trim_history(st.session_state.messages)

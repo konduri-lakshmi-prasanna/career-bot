@@ -1,7 +1,10 @@
 """
 tabs.py — Streamlit tab rendering.
 
-Pure presentation — business logic delegated to services.actions.
+Changes vs original:
+  • render_career_chat_tab() calls core.chain.ask() which injects memory.
+  • _show_source_chunks() works with both FAISS retriever and HybridRetriever.
+  • append_message() from state.py replaces direct list append (enforces trim).
 """
 
 import streamlit as st
@@ -12,17 +15,20 @@ from core.prompts import (
     career_roadmap_prompt,
     job_match_prompt,
 )
+from core.chain import ask
 from services.actions import run_quick_action
-from ui.state import set_quick_result
+from ui.state import set_quick_result, append_message
 
 
-# ── Helpers ──────────────────────────────────────────────────────────────────
+# ── Helpers ───────────────────────────────────────────────────────────────────
 
 def _show_source_chunks(query: str):
     """Render an expander showing the retrieved source chunks."""
     with st.expander("📄 Source chunks used"):
-        if st.session_state.retriever:
-            docs = st.session_state.retriever.invoke(query)
+        retriever = st.session_state.retriever
+        if retriever:
+            # HybridRetriever exposes .invoke(); FAISS retriever also does
+            docs = retriever.invoke(query) if hasattr(retriever, "invoke") else retriever.get_relevant_documents(query)
             if docs:
                 for i, doc in enumerate(docs, 1):
                     src = doc.metadata.get("source_file", doc.metadata.get("source", ""))
@@ -31,7 +37,7 @@ def _show_source_chunks(query: str):
                 st.warning("No relevant content found in uploaded documents.")
 
 
-# ── Tab renderers ────────────────────────────────────────────────────────────
+# ── Tab renderers ─────────────────────────────────────────────────────────────
 
 def render_career_chat_tab():
     st.markdown("""
@@ -51,14 +57,25 @@ def render_career_chat_tab():
     user_input = st.chat_input("Ask me anything — e.g. What career suits me based on my resume?")
 
     if user_input:
-        st.session_state.messages.append({"role": "user", "content": user_input})
+        # Show user bubble immediately
         with st.chat_message("user"):
             st.markdown(user_input)
 
+        # Build history BEFORE appending this turn (so it's "prior" context)
+        prior_messages = list(st.session_state.messages)
+
+        # Save user message (with memory trimming)
+        append_message("user", user_input)
+
         with st.chat_message("assistant"):
-            if st.session_state.rag_chain:
+            if st.session_state.rag_chain and st.session_state.retriever:
                 with st.spinner("Retrieving from your documents…"):
-                    response = st.session_state.rag_chain.invoke(user_input)
+                    response = ask(
+                        chain=st.session_state.rag_chain,
+                        retriever=st.session_state.retriever,
+                        question=user_input,
+                        messages=prior_messages,
+                    )
                     st.markdown(response)
                 _show_source_chunks(user_input)
             else:
@@ -69,7 +86,8 @@ def render_career_chat_tab():
                 )
                 st.warning(response)
 
-        st.session_state.messages.append({"role": "assistant", "content": response})
+        # Save assistant reply (with memory trimming)
+        append_message("assistant", response)
 
 
 def render_resume_score_tab():

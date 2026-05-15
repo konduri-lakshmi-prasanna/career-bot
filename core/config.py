@@ -29,3 +29,19 @@ CHUNK_OVERLAP = 100
 
 # ── Retrieval Settings ───────────────────────────────────────────────────────
 RETRIEVER_K = 6
+
+# ── Week 1 — Chat Memory ─────────────────────────────────────────────────────
+# Number of conversation *pairs* (user + assistant) to keep in context.
+# 5 pairs = 10 messages — enough context without bloating the prompt.
+MEMORY_WINDOW_SIZE: int = int(os.getenv("MEMORY_WINDOW_SIZE", "5"))
+
+# ── Week 1 — Hybrid Search ───────────────────────────────────────────────────
+# Number of BM25 candidate documents before RRF merge
+BM25_K: int = int(os.getenv("BM25_K", "10"))
+
+# Reciprocal Rank Fusion constant — higher = smoother rank fusion, lower = more top-heavy
+# 60 is the standard value from the original RRF paper
+RRF_K_CONSTANT: int = int(os.getenv("RRF_K_CONSTANT", "60"))
+
+# Set to "hybrid" to use BM25+vector fusion; "vector" for original FAISS-only
+RETRIEVAL_MODE: str = os.getenv("RETRIEVAL_MODE", "hybrid")

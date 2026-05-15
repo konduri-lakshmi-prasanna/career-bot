@@ -1,13 +1,14 @@
 """
 prompts.py — All prompt templates used by CareerBot.
 
-Contains:
-  • RAG_PROMPT — the core retrieval-augmented generation system prompt
-  • Feature-specific prompt builders for each tab / quick action
+Changes vs original:
+  • RAG_PROMPT now has a {history} slot injected before the user question.
+    When history is empty the section header is still rendered but blank —
+    the LLM ignores it gracefully.
 """
 
 
-# ── Core RAG System Prompt ───────────────────────────────────────────────────
+# ── Core RAG System Prompt ────────────────────────────────────────────────────
 
 RAG_PROMPT = """You are CareerBot — an AI career guidance assistant.
 
@@ -19,6 +20,11 @@ RULES:
 - If CONTEXT exists but doesn't have enough info for the question, say so honestly and suggest uploading more documents.
 - Quote or paraphrase directly from the CONTEXT. Cite which document section you are referencing.
 - Use structured formatting with markdown headers and bullet points.
+- If the user refers to something mentioned earlier (e.g. "that skill", "the project you mentioned"), use the CONVERSATION HISTORY below to resolve the reference.
+
+--- CONVERSATION HISTORY (last few turns) ---
+{history}
+--- END HISTORY ---
 
 --- CONTEXT FROM UPLOADED DOCUMENTS ---
 {context}
@@ -29,7 +35,7 @@ User Question: {question}
 Answer (based strictly on the above context):"""
 
 
-# ── Feature Prompt Builders ──────────────────────────────────────────────────
+# ── Feature Prompt Builders ───────────────────────────────────────────────────
 
 def resume_analysis_prompt() -> str:
     return """Analyse ONLY the resume content from the uploaded documents and provide:
