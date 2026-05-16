@@ -19,28 +19,26 @@ The fourth tab is Career Roadmap. You enter your dream job and a timeframe, and 
 The fifth tab is Job Match. You paste any job description and the bot compares it with your resume. It gives you a match score, tells you which skills you have, which skills you are missing, and whether you should apply now or prepare more first.
 
 ---
-
 ## UML Diagrams
 
 ### 1. System Architecture
 Shows all 5 layers — User, UI layer, Services, Core Engine, and External APIs.
 
-![System Architecture](diagrams/uml_architecture.png)
+![System Architecture](diagrams/Screenshot%202026-05-16%20234900.png)
 
 ---
 
 ### 2. RAG Query Flow
 Shows how a user question flows through hybrid retrieval, memory injection, prompt building, and the LLM to produce an answer.
 
-![RAG Query Flow](diagrams/uml_rag_flow.png)
+![RAG Query Flow](diagrams/Screenshot%202026-05-16%20234924.png)
 
 ---
 
 ### 3. Document Ingestion Pipeline
 Shows how uploaded files are detected, loaded with OCR if needed, chunked, embedded, and saved to the FAISS index.
 
-![Document Ingestion Pipeline](diagrams/uml_ingestion.png)
-
+![Document Ingestion Pipeline](diagrams/Screenshot%202026-05-16%20234942.png)
 ---
 ## How It Works
 
