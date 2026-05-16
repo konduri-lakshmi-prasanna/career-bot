@@ -20,6 +20,28 @@ The fifth tab is Job Match. You paste any job description and the bot compares i
 
 ---
 
+## UML Diagrams
+
+### 1. System Architecture
+Shows all 5 layers — User, UI layer, Services, Core Engine, and External APIs.
+
+![System Architecture](diagrams/uml_architecture.png)
+
+---
+
+### 2. RAG Query Flow
+Shows how a user question flows through hybrid retrieval, memory injection, prompt building, and the LLM to produce an answer.
+
+![RAG Query Flow](diagrams/uml_rag_flow.png)
+
+---
+
+### 3. Document Ingestion Pipeline
+Shows how uploaded files are detected, loaded with OCR if needed, chunked, embedded, and saved to the FAISS index.
+
+![Document Ingestion Pipeline](diagrams/uml_ingestion.png)
+
+---
 ## How It Works
 
 When you upload a document, the app breaks it into small chunks of text and stores them in a database called a FAISS index. When you ask a question, the app searches for the most relevant chunks and sends them to the language model along with your question. The language model then generates an answer based only on those chunks.
