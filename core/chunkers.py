@@ -5,7 +5,7 @@ Splits loaded documents into smaller chunks for embedding.
 
 from typing import List
 
-from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_core.documents import Document
 
 from core.config import CHUNK_SIZE, CHUNK_OVERLAP

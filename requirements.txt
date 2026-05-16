@@ -30,3 +30,6 @@ Pillow
 # ── Week 1: Hybrid Search ────────────────────────────────────────────────────
 # BM25 keyword retrieval for hybrid search (RRF fusion with FAISS)
 rank-bm25
+ragas
+datasets
+pandas
