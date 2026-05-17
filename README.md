@@ -19,27 +19,222 @@ The fourth tab is Career Roadmap. You enter your dream job and a timeframe, and 
 The fifth tab is Job Match. You paste any job description and the bot compares it with your resume. It gives you a match score, tells you which skills you have, which skills you are missing, and whether you should apply now or prepare more first.
 
 ---
+
 ## UML Diagrams
 
 ### 1. System Architecture
+
 Shows all 5 layers — User, UI layer, Services, Core Engine, and External APIs.
 
-![System Architecture](diagrams/Screenshot%202026-05-16%20234900.png)
+```mermaid
+flowchart TD
+    User([Student / User]) -->|Interacts with| UI(Streamlit Frontend)
+    UI -->|File Upload| Sidebar(sidebar.py)
+    UI -->|User Question| Tabs(tabs.py)
+    Sidebar -->|rebuild_knowledge_base| Pipeline(pipeline.py)
+    Pipeline -->|load_documents| Loader(loaders.py)
+    Pipeline -->|chunk_documents| Chunker(chunkers.py)
+    Pipeline -->|build_vectorstore| VectorStore(vectorstore.py)
+    Tabs -->|ask question| Chain(chain.py)
+    Chain -->|invoke query| Retriever(hybrid_retriever.py)
+    Retriever -->|vector search| FAISS[(FAISS Index)]
+    Retriever -->|keyword search| BM25[BM25 Search]
+    Retriever -->|RRF merge| Chain
+    Chain -->|get history| Memory(memory.py)
+    Chain -->|build prompt| Prompts(prompts.py)
+    Chain -->|LLM call| Groq[/Groq LLaMA 3.3 70B/]
+    Groq -->|generated answer| Chain
+    Chain -->|stream answer| Tabs
+```
 
 ---
 
-### 2. RAG Query Flow
-Shows how a user question flows through hybrid retrieval, memory injection, prompt building, and the LLM to produce an answer.
+### 2. Document Ingestion Pipeline
 
-![RAG Query Flow](diagrams/Screenshot%202026-05-16%20234924.png)
-
----
-
-### 3. Document Ingestion Pipeline
 Shows how uploaded files are detected, loaded with OCR if needed, chunked, embedded, and saved to the FAISS index.
 
-![Document Ingestion Pipeline](diagrams/Screenshot%202026-05-16%20234942.png)
+```mermaid
+flowchart TD
+    Upload[/User Uploads File/] --> Detect{Detect File Type}
+    Detect -->|Text PDF| PyPDF[PyPDFLoader]
+    Detect -->|Scanned PDF| OCR[ocr_scanned_pdf - Tesseract]
+    Detect -->|TXT File| TextLoader[TextLoader]
+    Detect -->|Image| ImgOCR[ocr_image - Tesseract]
+    PyPDF --> Chunk[chunk_documents - 800 chars / 100 overlap]
+    OCR --> Chunk
+    TextLoader --> Chunk
+    ImgOCR --> Chunk
+    Chunk --> Embed[Embed with MiniLM-L6-v2]
+    Embed --> Save[(Save to FAISS Index)]
+    Chunk --> Cache[(Save chunks_cache.json for BM25)]
+```
+
 ---
+
+### 3. RAG Query Flow
+
+Shows how a user question flows through hybrid retrieval, memory injection, prompt building, and the LLM to produce an answer.
+
+```mermaid
+flowchart TD
+    Q([User Question]) --> Retriever(HybridRetriever.invoke)
+    Retriever --> FAISS[FAISS Vector Search]
+    Retriever --> BM25[BM25 Keyword Search]
+    FAISS --> RRF{RRF Merge - top 6 chunks}
+    BM25 --> RRF
+    RRF --> Prompt(Prompt Assembly - prompts.py)
+    Memory(memory.py - last 5 turns) --> Prompt
+    Prompt --> LLM[/Groq LLaMA 3.3 70B/]
+    LLM --> Answer([Answer Streamed to User])
+    Answer --> Memory
+```
+
+---
+
+### 4. Sequence Diagram
+
+Shows the full order of interactions between all components from upload to answer.
+
+```mermaid
+sequenceDiagram
+    actor User
+    participant UI as Streamlit UI
+    participant Pipeline as pipeline.py
+    participant Loader as loaders.py
+    participant VectorStore as vectorstore.py
+    participant Chain as chain.py
+    participant Retriever as hybrid_retriever.py
+    participant Memory as memory.py
+    participant Groq as Groq LLM
+
+    User->>UI: Upload file and click Build Knowledge Base
+    UI->>Pipeline: rebuild_knowledge_base()
+    Pipeline->>Loader: load_documents(files)
+    Loader-->>Pipeline: return documents
+    Pipeline->>Pipeline: chunk_documents(docs)
+    Pipeline->>VectorStore: build_vectorstore(chunks)
+    VectorStore-->>Pipeline: return FAISS index
+    Pipeline->>Chain: build_chain(vectorstore)
+    Chain-->>UI: RAG chain ready
+
+    User->>UI: Type question in chat tab
+    UI->>Chain: ask(question)
+    Chain->>Memory: get_history()
+    Memory-->>Chain: return last 5 turns
+    Chain->>Retriever: invoke(query)
+    Retriever->>Retriever: FAISS vector search
+    Retriever->>Retriever: BM25 keyword search
+    Retriever->>Retriever: RRF merge top-6 chunks
+    Retriever-->>Chain: return top-k chunks
+    Chain->>Groq: LLM call with prompt
+    Groq-->>Chain: generated answer
+    Chain->>Memory: save_turn(question, answer)
+    Chain-->>UI: stream answer
+    UI-->>User: display answer in chat
+```
+
+---
+
+### 5. Class Diagram
+
+Shows all classes, their attributes, methods, and relationships.
+
+```mermaid
+classDiagram
+    class Config {
+        +GROQ_API_KEY : str
+        +MODEL_NAME : str
+        +EMBED_MODEL : str
+        +CHUNK_SIZE : int
+        +CHUNK_OVERLAP : int
+        +DATA_DIR : str
+    }
+
+    class DocumentLoader {
+        +file_paths : list
+        +load_documents() list
+        +ocr_scanned_pdf(path) str
+        +ocr_image(path) str
+        +detect_file_type(path) str
+    }
+
+    class TextChunker {
+        +chunk_size : int
+        +chunk_overlap : int
+        +chunk_documents(docs) list
+    }
+
+    class VectorStore {
+        +embed_model : str
+        +index_path : str
+        +build_vectorstore(chunks) FAISS
+        +load_vectorstore() FAISS
+        +save_chunks_cache(chunks)
+    }
+
+    class HybridRetriever {
+        +vectorstore : FAISS
+        +bm25 : BM25Okapi
+        +chunks : list
+        +k : int
+        +invoke(query) list
+        +faiss_search(query) list
+        +bm25_search(query) list
+        +rrf_merge(r1, r2) list
+    }
+
+    class ConversationMemory {
+        +history : list
+        +window_size : int
+        +get_history() list
+        +save_turn(q, a)
+        +format_history() str
+        +clear()
+    }
+
+    class RAGChain {
+        +retriever : HybridRetriever
+        +memory : ConversationMemory
+        +llm : ChatGroq
+        +prompt : PromptTemplate
+        +build_chain(vectorstore) RAGChain
+        +ask(question) str
+    }
+
+    class KnowledgePipeline {
+        +loader : DocumentLoader
+        +chunker : TextChunker
+        +store : VectorStore
+        +rebuild_knowledge_base()
+        +load_existing_knowledge_base()
+        +get_chain() RAGChain
+    }
+
+    class StreamlitUI {
+        +chain : RAGChain
+        +session_state : dict
+        +render_sidebar()
+        +render_chat_tab()
+        +render_score_tab()
+        +render_interview_tab()
+        +render_roadmap_tab()
+        +render_job_tab()
+    }
+
+    KnowledgePipeline --> DocumentLoader : uses
+    KnowledgePipeline --> TextChunker : uses
+    KnowledgePipeline --> VectorStore : uses
+    KnowledgePipeline --> RAGChain : creates
+    RAGChain --> HybridRetriever : uses
+    RAGChain --> ConversationMemory : uses
+    RAGChain --> Config : reads
+    HybridRetriever --> VectorStore : uses
+    StreamlitUI --> RAGChain : uses
+    StreamlitUI --> KnowledgePipeline : calls
+```
+
+---
+
 ## How It Works
 
 When you upload a document, the app breaks it into small chunks of text and stores them in a database called a FAISS index. When you ask a question, the app searches for the most relevant chunks and sends them to the language model along with your question. The language model then generates an answer based only on those chunks.
@@ -80,33 +275,47 @@ The data folder is where uploaded documents are saved. The faiss_index folder is
 
 First, install the system dependencies. On Ubuntu or Debian, run the following command.
 
-    sudo apt-get install -y tesseract-ocr poppler-utils
+```bash
+sudo apt-get install -y tesseract-ocr poppler-utils
+```
 
 On macOS, run the following command.
 
-    brew install tesseract poppler
+```bash
+brew install tesseract poppler
+```
 
 Next, clone the repository and go into the project folder.
 
-    git clone https://github.com/your-username/careerbot.git
-    cd careerbot
+```bash
+git clone https://github.com/your-username/careerbot.git
+cd careerbot
+```
 
 Create a virtual environment and activate it.
 
-    python -m venv .venv
-    source .venv/bin/activate
+```bash
+python -m venv .venv
+source .venv/bin/activate
+```
 
 Install the Python packages.
 
-    pip install -r requirements.txt
+```bash
+pip install -r requirements.txt
+```
 
 Create a file called .env in the project folder and add your Groq API key like this.
 
-    GROQ_API_KEY=your_key_here
+```
+GROQ_API_KEY=your_key_here
+```
 
 Finally, run the app.
 
-    streamlit run app.py
+```bash
+streamlit run app.py
+```
 
 Then open your browser and go to http://localhost:8501.
 
@@ -126,7 +335,9 @@ The project includes an evaluation script that tests the quality of the RAG pipe
 
 To run the evaluation, first build the knowledge base through the app, then run the following command.
 
-    python evaluate.py
+```bash
+python evaluate.py
+```
 
 The results will be printed in the terminal and also saved to a file called ragas_results.csv.
 
