@@ -1,23 +1,23 @@
 """
 state.py — Streamlit session state management.
 
-Changes vs original:
-  • init_state() adds `all_chunks` key for hybrid retriever.
-  • trim_messages() enforces the memory window on every new message.
-  • set_chain() accepts the optional all_chunks list.
+CHANGES:
+  • init_state() loads chat history from disk on startup.
+  • append_message() saves history to disk after every message.
+  • clear_chat() also wipes the saved history file.
 """
 
 import streamlit as st
-from core.memory import trim_history
+from core.memory import trim_history, load_history, save_history
 
 
 def init_state():
     """Initialise all session state keys with defaults."""
     defaults = {
-        "messages":       [],
+        "messages":       load_history(),   # ← loads from disk instead of []
         "rag_chain":      None,
         "retriever":      None,
-        "all_chunks":     [],          # NEW — needed by HybridRetriever
+        "all_chunks":     [],
         "uploaded_files": [],
         "quick_result":   None,
     }
@@ -29,6 +29,7 @@ def init_state():
 def clear_chat():
     st.session_state.messages     = []
     st.session_state.quick_result = None
+    save_history([])                        # ← wipes the saved file too
 
 
 def set_chain(chain, retriever):
@@ -46,9 +47,6 @@ def set_quick_result(tab_key: str, result: str):
 
 
 def append_message(role: str, content: str):
-    """
-    Append a message and trim the history to the configured memory window.
-    Call this instead of st.session_state.messages.append() directly.
-    """
     st.session_state.messages.append({"role": role, "content": content})
     st.session_state.messages = trim_history(st.session_state.messages)
+    save_history(st.session_state.messages)  # ← saves to disk after every message
