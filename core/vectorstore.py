@@ -40,10 +40,12 @@ def build_index(
     only_files: Optional[List[str]] = None,
 ) -> Tuple[Optional[Chroma], List[Document], list]:
     """
-    Build a ChromaDB index from documents in the data folder.
+    Persistently index documents into ChromaDB.
 
-    Chroma persists automatically to INDEX_FOLDER — no manual save needed.
-    If the collection already exists it is deleted and rebuilt from scratch.
+    - If the collection already exists, NEW files are ADDED to it (not wiped).
+    - Already-indexed files (same source_file metadata) are skipped to avoid
+      duplicates.
+    - Chroma auto-persists on every write — no manual save needed.
 
     Args:
         only_files: If provided, only index these specific filenames.
@@ -54,21 +56,37 @@ def build_index(
     documents, errors = load_documents(only_files)
 
     if not documents:
-        return None, [], errors
+        # Even if no new docs, return existing vectorstore if it exists
+        vectorstore, all_chunks = load_index()
+        return vectorstore, all_chunks, errors
 
     chunks = chunk_documents(documents)
 
-    # Delete existing collection so rebuild is clean
-    _delete_existing_collection()
-
-    vectorstore = Chroma.from_documents(
-        documents=chunks,
-        embedding=get_embeddings(),
+    # Open (or create) the persistent collection
+    vectorstore = Chroma(
         collection_name=COLLECTION_NAME,
+        embedding_function=get_embeddings(),
         persist_directory=INDEX_FOLDER,
     )
 
-    return vectorstore, chunks, errors
+    # Find which source files are already indexed — skip them to avoid duplicates
+    already_indexed = _get_indexed_sources(vectorstore)
+    new_chunks = [
+        c for c in chunks
+        if c.metadata.get("source_file", c.metadata.get("source", "")) not in already_indexed
+    ]
+
+    if new_chunks:
+        vectorstore.add_documents(new_chunks)
+
+    # Return ALL chunks (old + new) for BM25 hybrid search
+    results = vectorstore.get(include=["documents", "metadatas"])
+    all_chunks = [
+        Document(page_content=text, metadata=meta or {})
+        for text, meta in zip(results["documents"], results["metadatas"])
+    ]
+
+    return vectorstore, all_chunks, errors
 
 
 def load_index() -> Tuple[Optional[Chroma], List[Document]]:
@@ -112,8 +130,6 @@ def load_index() -> Tuple[Optional[Chroma], List[Document]]:
 def add_documents(new_chunks: List[Document]) -> bool:
     """
     Incrementally add new documents to an existing Chroma collection.
-    This is a bonus over FAISS — no full rebuild needed.
-
     Returns True on success, False on failure.
     """
     try:
@@ -131,11 +147,30 @@ def add_documents(new_chunks: List[Document]) -> bool:
 
 # ── Private helpers ────────────────────────────────────────────────────────────
 
-def _delete_existing_collection() -> None:
-    """Delete the Chroma collection if it exists, for a clean rebuild."""
+def _get_indexed_sources(vectorstore: Chroma) -> set:
+    """Return a set of source filenames already present in the collection."""
+    try:
+        results = vectorstore.get(include=["metadatas"])
+        sources = set()
+        for meta in results["metadatas"]:
+            if meta:
+                src = meta.get("source_file") or meta.get("source", "")
+                if src:
+                    sources.add(src)
+        return sources
+    except Exception:
+        return set()
+
+
+def clear_index() -> None:
+    """
+    Completely wipe the ChromaDB collection.
+    Call this only when you explicitly want to start fresh.
+    """
     try:
         import chromadb
         client = chromadb.PersistentClient(path=INDEX_FOLDER)
         client.delete_collection(COLLECTION_NAME)
+        print("[vectorstore] Collection cleared.")
     except Exception:
-        pass  # Collection doesn't exist yet — that's fine
+        pass

@@ -1,10 +1,10 @@
 """
 sidebar.py — Sidebar components and file uploading logic.
 
-FIX: When a new file is uploaded, all previously saved files in DATA_FOLDER
-are deleted first so the knowledge base is built ONLY from the new upload.
-Previously, old PDFs (PrasannaKonduri.pdf, Kavya_Resume.pdf etc.) stayed in
-the data/ folder and got re-indexed every time alongside new uploads.
+PERSISTENT RAG: Uploaded documents are ADDED to the existing ChromaDB index.
+Previously indexed files are never deleted unless the user explicitly clears
+the knowledge base. This means the bot remembers all past uploads across
+app restarts.
 """
 
 import os
@@ -13,6 +13,7 @@ import streamlit as st
 from core.config import DATA_FOLDER
 from core.ocr import IMAGE_EXTENSIONS, is_image_file
 from core.loaders import describe_file_type
+from core.vectorstore import clear_index
 from services.pipeline import rebuild_knowledge_base, load_existing_knowledge_base
 from ui.state import set_chain, add_uploaded_file, clear_chat
 
@@ -21,8 +22,14 @@ _UPLOAD_TYPES = ["pdf", "txt"] + [ext.lstrip(".") for ext in IMAGE_EXTENSIONS]
 SUPPORTED_EXTS = {".pdf", ".txt"} | {e for e in IMAGE_EXTENSIONS}
 
 
-def _clear_data_folder():
-    """Delete all previously uploaded documents from the data folder."""
+def _clear_all_knowledge():
+    """
+    Wipe ChromaDB collection AND delete all files from the data folder.
+    This is a full reset — call only when the user explicitly requests it.
+    """
+    # Clear ChromaDB
+    clear_index()
+    # Delete files from data folder
     for fname in os.listdir(DATA_FOLDER):
         if os.path.splitext(fname)[1].lower() in SUPPORTED_EXTS:
             try:
@@ -30,6 +37,8 @@ def _clear_data_folder():
             except Exception:
                 pass
     st.session_state.uploaded_files = []
+    st.session_state.rag_chain = None
+    st.session_state.rag_retriever = None
 
 
 def _has_ocr_files() -> bool:
@@ -113,9 +122,7 @@ def render_sidebar():
         )
 
         if uploaded:
-            # FIX: Clear old files first so only uploaded files get indexed
-            _clear_data_folder()
-
+            # PERSISTENT: do NOT clear old files — add new ones to the existing index
             new_files, ocr_files = [], []
             for file in uploaded:
                 save_path = os.path.join(DATA_FOLDER, file.name)
@@ -145,6 +152,11 @@ def render_sidebar():
 
         if st.button("⚡ Rebuild Knowledge Base", use_container_width=True):
             _handle_rebuild("Rebuilding index…")
+
+        if st.button("🗑️ Clear Knowledge Base", use_container_width=True, type="secondary"):
+            _clear_all_knowledge()
+            st.success("✅ Knowledge base cleared. Upload new documents to start fresh.")
+            st.rerun()
 
         if st.session_state.rag_chain is None:
             st.info("💡 Upload documents above — the knowledge base builds automatically.")
