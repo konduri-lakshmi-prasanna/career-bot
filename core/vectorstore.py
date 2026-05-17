@@ -1,18 +1,19 @@
 """
-vectorstore.py — FAISS vector store management.
+vectorstore.py — ChromaDB vector store management.
 
-Changes vs original:
-  • build_index() now also returns `all_chunks` so the caller can pass them
-    to HybridRetriever without re-loading the documents.
-  • load_index() returns a (vectorstore, all_chunks) tuple — chunks are stored
-    as a JSON sidecar file alongside the FAISS index.
+REPLACES: FAISS-based vectorstore.py
+CHANGES:
+  • Uses Chroma instead of FAISS for persistent, file-based storage.
+  • No more chunks_cache.json sidecar — chunks are loaded directly from Chroma.
+  • build_index() and load_index() return identical signatures to the original,
+    so pipeline.py, chain.py, and hybrid_retriever.py need minimal changes.
+  • Chroma auto-persists on every write — no manual save_local() needed.
 """
 
 import os
-import json
 from typing import Optional, List, Tuple
 
-from langchain_community.vectorstores import FAISS
+from langchain_chroma import Chroma
 from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_core.documents import Document
 
@@ -20,12 +21,10 @@ from core.config import INDEX_FOLDER, EMBEDDING_MODEL
 from core.loaders import load_documents
 from core.chunkers import chunk_documents
 
+# Collection name inside ChromaDB
+COLLECTION_NAME = "careerbot"
 
-# ── Sidecar path for chunk text cache ────────────────────────────────────────
-_CHUNKS_CACHE = os.path.join(INDEX_FOLDER, "chunks_cache.json")
-
-
-# ── Singleton-style embeddings (cached at module level) ──────────────────────
+# ── Singleton embeddings (cached at module level) ─────────────────────────────
 _embeddings = None
 
 
@@ -37,73 +36,106 @@ def get_embeddings() -> HuggingFaceEmbeddings:
     return _embeddings
 
 
-def _save_chunks(chunks: List[Document]) -> None:
-    """Persist chunk text and metadata to a JSON sidecar file."""
-    os.makedirs(INDEX_FOLDER, exist_ok=True)
-    serialised = [
-        {"page_content": doc.page_content, "metadata": doc.metadata}
-        for doc in chunks
-    ]
-    with open(_CHUNKS_CACHE, "w", encoding="utf-8") as f:
-        json.dump(serialised, f, ensure_ascii=False)
-
-
-def _load_chunks() -> List[Document]:
-    """Load chunks from the JSON sidecar file, or return [] if absent."""
-    if not os.path.exists(_CHUNKS_CACHE):
-        return []
-    try:
-        with open(_CHUNKS_CACHE, "r", encoding="utf-8") as f:
-            raw = json.load(f)
-        return [Document(page_content=r["page_content"], metadata=r["metadata"]) for r in raw]
-    except Exception:
-        return []
-
-
 def build_index(
     only_files: Optional[List[str]] = None,
-) -> Tuple[Optional[FAISS], List[Document], list]:
+) -> Tuple[Optional[Chroma], List[Document], list]:
     """
-    Build a FAISS index from documents in the data folder.
+    Build a ChromaDB index from documents in the data folder.
+
+    Chroma persists automatically to INDEX_FOLDER — no manual save needed.
+    If the collection already exists it is deleted and rebuilt from scratch.
 
     Args:
         only_files: If provided, only index these specific filenames.
 
     Returns:
-        Tuple of (FAISS vectorstore or None, all_chunks, list of loading errors).
+        Tuple of (Chroma vectorstore or None, all_chunks, list of loading errors).
     """
     documents, errors = load_documents(only_files)
 
     if not documents:
         return None, [], errors
 
-    chunks      = chunk_documents(documents)
-    embeddings  = get_embeddings()
-    vectorstore = FAISS.from_documents(chunks, embeddings)
-    vectorstore.save_local(INDEX_FOLDER)
+    chunks = chunk_documents(documents)
 
-    # Persist chunks for hybrid retrieval
-    _save_chunks(chunks)
+    # Delete existing collection so rebuild is clean
+    _delete_existing_collection()
+
+    vectorstore = Chroma.from_documents(
+        documents=chunks,
+        embedding=get_embeddings(),
+        collection_name=COLLECTION_NAME,
+        persist_directory=INDEX_FOLDER,
+    )
 
     return vectorstore, chunks, errors
 
 
-def load_index() -> Tuple[Optional[FAISS], List[Document]]:
+def load_index() -> Tuple[Optional[Chroma], List[Document]]:
     """
-    Load an existing FAISS index from disk.
+    Load an existing ChromaDB index from disk.
+
+    Chunks are fetched directly from Chroma — no sidecar JSON needed.
 
     Returns:
-        Tuple of (FAISS vectorstore or None, all_chunks list).
+        Tuple of (Chroma vectorstore or None, all_chunks list).
     """
     if not os.path.exists(INDEX_FOLDER):
         return None, []
+
     try:
-        vectorstore = FAISS.load_local(
-            INDEX_FOLDER,
-            get_embeddings(),
-            allow_dangerous_deserialization=True,
+        vectorstore = Chroma(
+            collection_name=COLLECTION_NAME,
+            embedding_function=get_embeddings(),
+            persist_directory=INDEX_FOLDER,
         )
-        chunks = _load_chunks()
+
+        # Verify the collection actually has documents
+        count = vectorstore._collection.count()
+        if count == 0:
+            return None, []
+
+        # Retrieve all stored chunks for BM25 hybrid search
+        results = vectorstore.get(include=["documents", "metadatas"])
+        chunks = [
+            Document(page_content=text, metadata=meta or {})
+            for text, meta in zip(results["documents"], results["metadatas"])
+        ]
+
         return vectorstore, chunks
-    except Exception:
+
+    except Exception as e:
+        print(f"[vectorstore] Failed to load ChromaDB index: {e}")
         return None, []
+
+
+def add_documents(new_chunks: List[Document]) -> bool:
+    """
+    Incrementally add new documents to an existing Chroma collection.
+    This is a bonus over FAISS — no full rebuild needed.
+
+    Returns True on success, False on failure.
+    """
+    try:
+        vectorstore = Chroma(
+            collection_name=COLLECTION_NAME,
+            embedding_function=get_embeddings(),
+            persist_directory=INDEX_FOLDER,
+        )
+        vectorstore.add_documents(new_chunks)
+        return True
+    except Exception as e:
+        print(f"[vectorstore] Failed to add documents: {e}")
+        return False
+
+
+# ── Private helpers ────────────────────────────────────────────────────────────
+
+def _delete_existing_collection() -> None:
+    """Delete the Chroma collection if it exists, for a clean rebuild."""
+    try:
+        import chromadb
+        client = chromadb.PersistentClient(path=INDEX_FOLDER)
+        client.delete_collection(COLLECTION_NAME)
+    except Exception:
+        pass  # Collection doesn't exist yet — that's fine

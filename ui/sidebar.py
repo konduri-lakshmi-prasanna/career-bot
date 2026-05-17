@@ -1,7 +1,10 @@
 """
 sidebar.py — Sidebar components and file uploading logic.
 
-Rendering only — pipeline orchestration is delegated to services.pipeline.
+FIX: When a new file is uploaded, all previously saved files in DATA_FOLDER
+are deleted first so the knowledge base is built ONLY from the new upload.
+Previously, old PDFs (PrasannaKonduri.pdf, Kavya_Resume.pdf etc.) stayed in
+the data/ folder and got re-indexed every time alongside new uploads.
 """
 
 import os
@@ -10,16 +13,26 @@ import streamlit as st
 from core.config import DATA_FOLDER
 from core.ocr import IMAGE_EXTENSIONS, is_image_file
 from core.loaders import describe_file_type
-from services.pipeline import rebuild_knowledge_base
+from services.pipeline import rebuild_knowledge_base, load_existing_knowledge_base
 from ui.state import set_chain, add_uploaded_file, clear_chat
 
-
-# All file types the uploader will accept
 _UPLOAD_TYPES = ["pdf", "txt"] + [ext.lstrip(".") for ext in IMAGE_EXTENSIONS]
+
+SUPPORTED_EXTS = {".pdf", ".txt"} | {e for e in IMAGE_EXTENSIONS}
+
+
+def _clear_data_folder():
+    """Delete all previously uploaded documents from the data folder."""
+    for fname in os.listdir(DATA_FOLDER):
+        if os.path.splitext(fname)[1].lower() in SUPPORTED_EXTS:
+            try:
+                os.remove(os.path.join(DATA_FOLDER, fname))
+            except Exception:
+                pass
+    st.session_state.uploaded_files = []
 
 
 def _has_ocr_files() -> bool:
-    """Return True if any uploaded file is an image or likely a scanned PDF."""
     for fname in st.session_state.get("uploaded_files", []):
         if is_image_file(fname):
             return True
@@ -27,23 +40,43 @@ def _has_ocr_files() -> bool:
 
 
 def _handle_rebuild(spinner_msg: str):
-    """Shared logic for building the knowledge base with UI feedback."""
     with st.spinner(spinner_msg):
-        chain, retriever, errors = rebuild_knowledge_base()
+        try:
+            chain, retriever, errors = rebuild_knowledge_base()
+            if chain:
+                set_chain(chain, retriever)
+                st.success("✅ Knowledge base ready!")
+            else:
+                st.error("❌ No valid documents found in the data folder.")
+            if errors:
+                with st.expander("⚠️ Loading warnings"):
+                    for err in errors:
+                        st.caption(err)
+        except Exception as e:
+            st.error(f"❌ Error building knowledge base: {e}")
+
+
+def _try_load_existing():
+    """On first page load, silently restore a previously built index."""
+    if st.session_state.rag_chain is not None:
+        return
+    try:
+        chain, retriever = load_existing_knowledge_base()
         if chain:
             set_chain(chain, retriever)
-            st.success("✅ Knowledge base ready!")
-        else:
-            st.error("❌ No valid documents could be loaded.")
-        if errors:
-            with st.expander("⚠️ Loading warnings"):
-                for err in errors:
-                    st.caption(err)
+            if not st.session_state.uploaded_files:
+                for fname in os.listdir(DATA_FOLDER):
+                    if os.path.splitext(fname)[1].lower() in SUPPORTED_EXTS:
+                        add_uploaded_file(fname)
+    except Exception:
+        pass
 
 
 def render_sidebar():
+    _try_load_existing()
+
     with st.sidebar:
-        # ── Branding
+        # ── Branding ──────────────────────────────────────────────────────────
         st.markdown("""
         <div style="padding: 1.25rem 0 0.5rem;">
             <div style="font-family:'JetBrains Mono', monospace; font-size:1.3rem;
@@ -59,7 +92,7 @@ def render_sidebar():
 
         st.divider()
 
-        # ── Upload section
+        # ── Upload section ─────────────────────────────────────────────────────
         st.markdown("""
         <div style="font-size:13px; font-weight:600; color:#fff; margin-bottom:0.5rem;">
             📂 Upload Documents
@@ -70,24 +103,33 @@ def render_sidebar():
         </div>
         """, unsafe_allow_html=True)
 
+        os.makedirs(DATA_FOLDER, exist_ok=True)
+
         uploaded = st.file_uploader(
-            "Choose files", type=_UPLOAD_TYPES,
-            accept_multiple_files=True, label_visibility="collapsed",
+            "Choose files",
+            type=_UPLOAD_TYPES,
+            accept_multiple_files=True,
+            label_visibility="collapsed",
         )
 
         if uploaded:
+            # FIX: Clear old files first so only uploaded files get indexed
+            _clear_data_folder()
+
             new_files, ocr_files = [], []
             for file in uploaded:
                 save_path = os.path.join(DATA_FOLDER, file.name)
-                if file.name not in st.session_state.uploaded_files:
-                    file_bytes = file.read()
-                    if file_bytes:
+                file_bytes = file.read()
+                if file_bytes:
+                    try:
                         with open(save_path, "wb") as f:
                             f.write(file_bytes)
                         new_files.append(file.name)
                         add_uploaded_file(file.name)
                         if is_image_file(file.name):
                             ocr_files.append(file.name)
+                    except Exception as e:
+                        st.error(f"❌ Could not save {file.name}: {e}")
 
             if new_files:
                 st.info(f"Saved: {', '.join(new_files)}")
@@ -102,21 +144,22 @@ def render_sidebar():
         st.markdown("<div style='margin-top:0.75rem'></div>", unsafe_allow_html=True)
 
         if st.button("⚡ Rebuild Knowledge Base", use_container_width=True):
-            _handle_rebuild("Rebuilding index (OCR applied to images/scanned PDFs)…")
+            _handle_rebuild("Rebuilding index…")
 
         if st.session_state.rag_chain is None:
-            st.info("💡 Upload your documents — the knowledge base builds automatically.")
+            st.info("💡 Upload documents above — the knowledge base builds automatically.")
 
         st.divider()
 
-        # ── File list
+        # ── File list ──────────────────────────────────────────────────────────
         if st.session_state.uploaded_files:
             st.markdown(
                 "<div style='font-size:13px; font-weight:600; color:#fff; margin-bottom:0.5rem;'>"
-                "📋 Files in Index</div>", unsafe_allow_html=True,
+                "📋 Files in Index</div>",
+                unsafe_allow_html=True,
             )
             for fname in st.session_state.uploaded_files:
-                label = describe_file_type(fname)
+                label   = describe_file_type(fname)
                 display = fname[:26] + "…" if len(fname) > 28 else fname
                 ocr_tag = (
                     " <span style='color:#00FFCC; font-size:10px;'>[OCR]</span>"
@@ -128,7 +171,7 @@ def render_sidebar():
                 )
             st.markdown("<br>", unsafe_allow_html=True)
 
-        # ── Status bar
+        # ── Status bar ─────────────────────────────────────────────────────────
         if st.session_state.rag_chain:
             extra = " + OCR" if _has_ocr_files() else ""
             st.markdown(f"""
@@ -144,6 +187,8 @@ def render_sidebar():
             </div>""", unsafe_allow_html=True)
 
         st.markdown("<br>", unsafe_allow_html=True)
+        st.caption(f"📁 `{DATA_FOLDER}`")
+
         if st.button("🗑️ Clear Chat History", use_container_width=True):
             clear_chat()
             st.rerun()

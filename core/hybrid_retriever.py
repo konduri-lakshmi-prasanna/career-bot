@@ -1,32 +1,30 @@
 """
 hybrid_retriever.py — Hybrid (vector + keyword) retrieval for CareerBot.
 
+CHANGES vs original:
+  • Import changed from FAISS → Chroma.
+  • Type hints updated from FAISS → Chroma.
+  • All logic (BM25, RRF, invoke) is IDENTICAL to the original.
+
 Combines:
-  • FAISS dense-vector similarity search  (semantic meaning)
-  • BM25 sparse keyword search            (exact term matching)
+  • Chroma dense-vector similarity search  (semantic meaning)
+  • BM25 sparse keyword search             (exact term matching)
 
-The two result sets are merged using Reciprocal Rank Fusion (RRF), which is
-lightweight, tuning-free, and consistently outperforms simple score averaging.
-
-Why this matters for a career bot:
-  - "Python" typed exactly should still surface even if the embedding treats it
-    as close to "JavaScript" or other languages.
-  - Semantic search alone misses rare acronyms (FAANG, NLP, CI/CD) that BM25
-    finds perfectly.
+The two result sets are merged using Reciprocal Rank Fusion (RRF).
 """
 
 from __future__ import annotations
 
-import math
 from typing import List, Optional
 
+# CHANGED: langchain_chroma instead of langchain_community.vectorstores.FAISS
+from langchain_chroma import Chroma
 from langchain_core.documents import Document
-from langchain_community.vectorstores import FAISS
 
 from core.config import RETRIEVER_K, BM25_K, RRF_K_CONSTANT
 
 
-# ── Optional BM25 import (graceful fallback) ─────────────────────────────────
+# ── Optional BM25 import (graceful fallback) ──────────────────────────────────
 try:
     from rank_bm25 import BM25Okapi
     _BM25_AVAILABLE = True
@@ -36,7 +34,7 @@ except ImportError:
 
 class HybridRetriever:
     """
-    Merges FAISS vector retrieval and BM25 keyword retrieval via RRF.
+    Merges Chroma vector retrieval and BM25 keyword retrieval via RRF.
 
     Usage:
         retriever = HybridRetriever(vectorstore, all_chunks)
@@ -45,7 +43,7 @@ class HybridRetriever:
 
     def __init__(
         self,
-        vectorstore: FAISS,
+        vectorstore: Chroma,          # CHANGED: was FAISS
         all_chunks: List[Document],
         k: int = RETRIEVER_K,
     ):
@@ -54,14 +52,13 @@ class HybridRetriever:
         self._k           = k
         self._bm25        = self._build_bm25(all_chunks) if _BM25_AVAILABLE else None
 
-    # ── Public API ────────────────────────────────────────────────────────────
+    # ── Public API ─────────────────────────────────────────────────────────────
 
     def invoke(self, query: str) -> List[Document]:
         """Return the top-k most relevant documents for *query*."""
         vector_hits = self._vector_search(query)
 
         if self._bm25 is None:
-            # BM25 not installed — fall back to pure vector search
             return vector_hits
 
         bm25_hits = self._bm25_search(query)
@@ -71,7 +68,7 @@ class HybridRetriever:
     def get_relevant_documents(self, query: str) -> List[Document]:
         return self.invoke(query)
 
-    # ── Private helpers ───────────────────────────────────────────────────────
+    # ── Private helpers ────────────────────────────────────────────────────────
 
     @staticmethod
     def _build_bm25(chunks: List[Document]) -> Optional["BM25Okapi"]:
@@ -82,7 +79,7 @@ class HybridRetriever:
         return BM25Okapi(tokenised)
 
     def _vector_search(self, query: str) -> List[Document]:
-        """Dense retrieval from FAISS."""
+        """Dense retrieval from ChromaDB."""
         try:
             return self._vectorstore.similarity_search(query, k=self._k * 2)
         except Exception:
@@ -95,7 +92,6 @@ class HybridRetriever:
         tokens = query.lower().split()
         scores = self._bm25.get_scores(tokens)
 
-        # Pair each chunk with its BM25 score and sort descending
         ranked = sorted(
             enumerate(scores), key=lambda x: x[1], reverse=True
         )
@@ -109,7 +105,6 @@ class HybridRetriever:
     ) -> List[Document]:
         """
         Reciprocal Rank Fusion.
-
         score(d) = Σ  1 / (RRF_K_CONSTANT + rank_in_list)
         """
         scores: dict[str, float] = {}
@@ -117,7 +112,7 @@ class HybridRetriever:
 
         def _add_list(hits: List[Document]) -> None:
             for rank, doc in enumerate(hits, start=1):
-                key = doc.page_content[:120]          # stable identity key
+                key = doc.page_content[:120]
                 scores[key] = scores.get(key, 0.0) + 1.0 / (RRF_K_CONSTANT + rank)
                 doc_map[key] = doc
 
@@ -129,7 +124,7 @@ class HybridRetriever:
 
 
 def build_hybrid_retriever(
-    vectorstore: FAISS,
+    vectorstore: Chroma,              # CHANGED: was FAISS
     all_chunks: List[Document],
     k: int = RETRIEVER_K,
 ) -> HybridRetriever:
@@ -137,7 +132,7 @@ def build_hybrid_retriever(
     Factory function — the only public import other modules need.
 
     Args:
-        vectorstore: Built FAISS index.
+        vectorstore: Built Chroma index.
         all_chunks:  Full list of Document chunks (same ones indexed).
         k:           Number of results to return per query.
 

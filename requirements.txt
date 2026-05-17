@@ -11,7 +11,7 @@ langchain-groq
 langchain-huggingface
 
 # ── Vector store & embeddings ────────────────────────────────────────────────
-faiss-cpu
+
 sentence-transformers
 
 # ── PDF loading (text-based PDFs) ────────────────────────────────────────────
@@ -33,3 +33,5 @@ rank-bm25
 ragas
 datasets
 pandas
+chromadb
+langchain-chroma

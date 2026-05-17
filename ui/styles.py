@@ -1,5 +1,12 @@
 """
 styles.py — High-End Command Center Dashboard CSS.
+
+FIXES:
+  1. Removed `header { visibility: hidden; }` — this was hiding the sidebar
+     toggle button, making it impossible to open the sidebar.
+  2. Fixed `[data-testid="stSidebar"] * { color: ... }` — this was overriding
+     file uploader and widget colors making them invisible/unclickable.
+  3. Added explicit sidebar toggle button visibility fix.
 """
 
 def get_custom_css() -> str:
@@ -13,17 +20,17 @@ def get_custom_css() -> str:
     --bg-card: #1D1E24;
     --bg-card-hover: #262831;
     --border-color: #2F313E;
-    
+
     --text-main: #FFFFFF;
     --text-muted: #8F95B2;
-    --text-accent: #00FFCC; /* Cyan/Green */
-    
+    --text-accent: #00FFCC;
+
     --neon-green: #00FF9D;
     --neon-blue: #00E5FF;
     --neon-pink: #FF3366;
     --neon-orange: #FF8800;
     --neon-yellow: #FFCC00;
-    
+
     --font-sans: 'Inter', sans-serif;
     --font-mono: 'JetBrains Mono', monospace;
 }
@@ -40,23 +47,94 @@ def get_custom_css() -> str:
     padding-top: 2rem;
 }
 
-#MainMenu, footer, header { visibility: hidden; }
+/* FIX: Only hide footer and main menu — NOT header.
+   Hiding header also hides the sidebar collapse/expand toggle button. */
+#MainMenu, footer { visibility: hidden; }
 
-/* SIDEBAR OVERRIDES */
+/* FIX: Force sidebar toggle button to always be visible */
+[data-testid="collapsedControl"] {
+    visibility: visible !important;
+    display: flex !important;
+    color: #00FFCC !important;
+}
+
+/* SIDEBAR */
 [data-testid="stSidebar"] {
     background-color: #0F0F11 !important;
     border-right: 1px solid var(--border-color);
 }
-[data-testid="stSidebar"] * { color: var(--text-muted) !important; }
-[data-testid="stSidebar"] h1, [data-testid="stSidebar"] h2, [data-testid="stSidebar"] h3 {
+
+/* FIX: Don't override ALL sidebar child colors — only text nodes.
+   The old rule broke file uploader, buttons, and widgets inside sidebar. */
+[data-testid="stSidebar"] p,
+[data-testid="stSidebar"] span,
+[data-testid="stSidebar"] label,
+[data-testid="stSidebar"] .stCaption {
+    color: var(--text-muted) !important;
+}
+
+[data-testid="stSidebar"] h1,
+[data-testid="stSidebar"] h2,
+[data-testid="stSidebar"] h3 {
     color: var(--text-main) !important;
     font-family: var(--font-mono) !important;
     letter-spacing: 1px;
 }
+
+/* File uploader in sidebar — keep it visible and styled */
 [data-testid="stFileUploader"] {
     background: var(--bg-card) !important;
-    border: 1px dashed var(--border-color) !important;
+    border: 1px dashed #00FFCC !important;
     border-radius: 12px !important;
+}
+[data-testid="stFileUploader"] * {
+    color: #FFFFFF !important;
+}
+[data-testid="stFileUploader"] button {
+    background: var(--bg-card) !important;
+    border: 1px solid #00FFCC !important;
+    color: #00FFCC !important;
+    border-radius: 8px !important;
+}
+
+/* File chip for file list in sidebar */
+.file-chip {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 4px 8px;
+    font-size: 12px;
+    font-family: var(--font-mono);
+    color: var(--text-muted) !important;
+    margin-bottom: 4px;
+}
+
+/* Status bars in sidebar */
+.status-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 1px;
+}
+.status-bar.ready {
+    background: rgba(0, 255, 157, 0.08);
+    border: 1px solid rgba(0, 255, 157, 0.3);
+    color: var(--neon-green) !important;
+}
+.status-bar.idle {
+    background: rgba(143, 149, 178, 0.08);
+    border: 1px solid var(--border-color);
+    color: var(--text-muted) !important;
+}
+.status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: currentColor;
 }
 
 /* TOP STATUS BAR */
@@ -111,18 +189,20 @@ def get_custom_css() -> str:
 .stChatInputContainer, .stChatInputContainer > div {
     border-color: var(--border-color) !important;
 }
-
-.stChatInput textarea, .stTextInput input, .stTextArea textarea, .stSelectbox [data-baseweb="select"] > div:first-child {
+.stChatInput textarea,
+.stTextInput input,
+.stTextArea textarea,
+.stSelectbox [data-baseweb="select"] > div:first-child {
     border: 1px solid var(--border-color) !important;
     border-radius: 8px !important;
     font-family: var(--font-sans) !important;
 }
-.stChatInput textarea:focus, .stTextInput input:focus, .stTextArea textarea:focus {
+.stChatInput textarea:focus,
+.stTextInput input:focus,
+.stTextArea textarea:focus {
     border-color: var(--neon-blue) !important;
     box-shadow: 0 0 10px rgba(0, 229, 255, 0.1) !important;
 }
-
-
 
 /* DASHBOARD CARDS */
 .dash-card {
@@ -137,17 +217,11 @@ def get_custom_css() -> str:
     border-color: rgba(255, 255, 255, 0.1);
     box-shadow: 0 8px 24px rgba(0,0,0,0.4);
 }
-
-/* CARD VARIANTS WITH GLOW */
-.card-pink { border-top: 3px solid var(--neon-pink); background: linear-gradient(180deg, rgba(255,51,102,0.05) 0%, var(--bg-card) 40%); }
-.card-blue { border-top: 3px solid var(--neon-blue); background: linear-gradient(180deg, rgba(0,229,255,0.05) 0%, var(--bg-card) 40%); }
-.card-green { border-top: 3px solid var(--neon-green); background: linear-gradient(180deg, rgba(0,255,157,0.05) 0%, var(--bg-card) 40%); }
-.card-orange { border-top: 3px solid var(--neon-orange); background: linear-gradient(180deg, rgba(255,136,0,0.05) 0%, var(--bg-card) 40%); }
-
-.card-icon {
-    font-size: 24px;
-    margin-bottom: 10px;
-}
+.card-pink   { border-top: 3px solid var(--neon-pink);   background: linear-gradient(180deg, rgba(255,51,102,0.05)  0%, var(--bg-card) 40%); }
+.card-blue   { border-top: 3px solid var(--neon-blue);   background: linear-gradient(180deg, rgba(0,229,255,0.05)   0%, var(--bg-card) 40%); }
+.card-green  { border-top: 3px solid var(--neon-green);  background: linear-gradient(180deg, rgba(0,255,157,0.05)   0%, var(--bg-card) 40%); }
+.card-orange { border-top: 3px solid var(--neon-orange); background: linear-gradient(180deg, rgba(255,136,0,0.05)   0%, var(--bg-card) 40%); }
+.card-icon  { font-size: 24px; margin-bottom: 10px; }
 .card-title {
     font-family: var(--font-mono);
     font-size: 12px;
@@ -156,13 +230,9 @@ def get_custom_css() -> str:
     letter-spacing: 1px;
     margin-bottom: 5px;
 }
-.card-value {
-    font-size: 24px;
-    font-weight: 700;
-    color: var(--text-main);
-}
+.card-value { font-size: 24px; font-weight: 700; color: var(--text-main); }
 
-/* TABS STYLING TO LOOK LIKE DASHBOARD MENUS */
+/* TABS */
 .stTabs [data-baseweb="tab-list"] {
     background: var(--bg-card);
     border-radius: 8px;
@@ -190,22 +260,10 @@ def get_custom_css() -> str:
     background: transparent !important;
     border: none !important;
 }
-[data-testid="stChatMessage"][data-testid*="user"] {
-    background: rgba(0, 229, 255, 0.05) !important;
-    border-left: 3px solid var(--neon-blue) !important;
-    border-radius: 0 8px 8px 0 !important;
-    color: #FFFFFF !important;
-}
-[data-testid="stChatMessage"][data-testid*="assistant"] {
-    background: var(--bg-card) !important;
-    border-left: 3px solid var(--neon-green) !important;
-    border-radius: 0 8px 8px 0 !important;
-    color: #FFFFFF !important;
-}
 
-/* ALERTS & WARNINGS */
+/* ALERTS */
 .stAlert > div {
-    background-color: #2b2b00 !important; /* Dark yellow background */
+    background-color: #2b2b00 !important;
     color: #FFFFFF !important;
     border-color: #cccc00 !important;
 }
@@ -214,17 +272,13 @@ def get_custom_css() -> str:
 }
 
 /* AVATARS */
-[data-testid="stChatMessageAvatarUser"] {
-    background-color: var(--neon-blue) !important;
-}
-[data-testid="stChatMessageAvatarAssistant"] {
-    background-color: var(--neon-green) !important;
-}
+[data-testid="stChatMessageAvatarUser"]      { background-color: var(--neon-blue)  !important; }
+[data-testid="stChatMessageAvatarAssistant"] { background-color: var(--neon-green) !important; }
 
 @keyframes pulse-neon {
-    0% { box-shadow: 0 0 0 0 rgba(0, 255, 157, 0.4); }
-    70% { box-shadow: 0 0 0 10px rgba(0, 255, 157, 0); }
-    100% { box-shadow: 0 0 0 0 rgba(0, 255, 157, 0); }
+    0%   { box-shadow: 0 0 0 0   rgba(0, 255, 157, 0.4); }
+    70%  { box-shadow: 0 0 0 10px rgba(0, 255, 157, 0);   }
+    100% { box-shadow: 0 0 0 0   rgba(0, 255, 157, 0);    }
 }
 </style>
 """
