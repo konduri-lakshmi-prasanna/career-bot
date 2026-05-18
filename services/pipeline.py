@@ -1,64 +1,36 @@
 """
-pipeline.py — Knowledge-base build pipeline.
+pipeline.py — refactored to use CareerBotPipeline from rag-core.
 
-Changes vs original:
-  • build_index() now returns (vectorstore, all_chunks, errors).
-  • rebuild_knowledge_base() passes all_chunks to build_chain() so the
-    HybridRetriever can be constructed in one go.
+Before: careerbot built its own chain, vectorstore, retriever here.
+After:  all of that is delegated to CareerBotPipeline which extends
+        the shared rag-core IRagPipeline interface.
+
+Low coupling: ui/sidebar.py and ui/tabs.py never touch RAG logic directly.
 """
 
-from typing import Optional, Tuple, List
+from careerbot_pipeline import CareerBotPipeline
 
-from langchain_core.documents import Document
-
-from core.vectorstore import build_index, load_index
-from core.chain import build_chain
+# Singleton — one pipeline instance for the whole app
+_pipeline = None
 
 
-def rebuild_knowledge_base() -> Tuple[Optional[object], Optional[object], list]:
-    """
-    Full pipeline: rebuild the FAISS index from all documents in the data
-    folder, then construct a fresh RAG chain (with hybrid retrieval).
+def get_pipeline() -> CareerBotPipeline:
+    global _pipeline
+    if _pipeline is None:
+        _pipeline = CareerBotPipeline()
+    return _pipeline
 
-    Returns:
-        (chain, retriever, errors)
-        chain     — the LangChain RAG chain, or None on failure
-        retriever — HybridRetriever or FAISS retriever, or None on failure
-        errors    — list of human-readable warning / error strings
-    """
-    vectorstore, all_chunks, errors = build_index()
 
-    if vectorstore is None:
-        return None, None, errors
-
-    chain, retriever = build_chain(vectorstore, all_chunks)
+def rebuild_knowledge_base():
+    """Called by sidebar when user uploads documents."""
+    pipeline = get_pipeline()
+    errors = pipeline.rebuild()
+    chain = pipeline._chain
+    retriever = pipeline._retriever
     return chain, retriever, errors
 
 
-def load_existing_knowledge_base() -> Tuple[Optional[object], Optional[object]]:
-    """
-    Load an already-built index and wire up the chain without re-indexing.
-
-    Returns:
-        (chain, retriever) — both None if no index found.
-    """
-    vectorstore, all_chunks = load_index()
-    if vectorstore is None:
-        return None, None
-
-    chain, retriever = build_chain(vectorstore, all_chunks)
-    return chain, retriever
-
-
-if __name__ == "__main__":
-    # CLI entry-point for manual re-indexing
-    print("🚀 Rebuilding knowledge base…")
-    chain, retriever, errors = rebuild_knowledge_base()
-    if chain:
-        print("✨ Knowledge base is ready!")
-    else:
-        print("❌ No valid documents could be loaded.")
-    if errors:
-        print("⚠️  Warnings:")
-        for err in errors:
-            print(f"   • {err}")
+def load_existing_knowledge_base():
+    """Called on app startup to restore existing index."""
+    pipeline = get_pipeline()
+    return pipeline._chain, pipeline._retriever
