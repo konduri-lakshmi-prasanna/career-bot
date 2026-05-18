@@ -8,7 +8,7 @@ After:  all of that is delegated to CareerBotPipeline which extends
 Low coupling: ui/sidebar.py and ui/tabs.py never touch RAG logic directly.
 """
 
-from careerbot_pipeline import CareerBotPipeline
+from core.careerbot_pipeline import CareerBotPipeline
 
 # Singleton — one pipeline instance for the whole app
 _pipeline = None
