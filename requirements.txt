@@ -27,7 +27,6 @@ pdf2image
 Pillow
 
 # ── Hybrid Search ────────────────────────────────────────────────────────────
-# BM25 keyword retrieval for hybrid search (RRF fusion with FAISS)
 rank-bm25
 
 # ── Evaluation & data ────────────────────────────────────────────────────────
@@ -36,8 +35,13 @@ datasets
 pandas
 
 # ── Vector store ─────────────────────────────────────────────────────────────
-chromadb
-langchain-chroma
+chromadb==1.5.9
+langchain-chroma==1.1.0
 
 # ── Tokenizer ────────────────────────────────────────────────────────────────
 tokenizers==0.21.1
+
+# ── Telemetry / protobuf compatibility (Streamlit Cloud / Python 3.14 fix) ───
+protobuf>=4.25.3,<5.0.0
+opentelemetry-exporter-otlp-proto-grpc>=1.27.0
+opentelemetry-sdk>=1.27.0
