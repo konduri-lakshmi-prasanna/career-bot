@@ -4,14 +4,13 @@ python-dotenv
 
 # ── LLM / LangChain stack ────────────────────────────────────────────────────
 groq
-langchain==0.2.16
-langchain-core==0.2.38
-langchain-community==0.2.16
+langchain>=0.3.0
+langchain-core>=0.3.0
+langchain-community>=0.3.0
 langchain-groq
 langchain-huggingface
 
 # ── Vector store & embeddings ────────────────────────────────────────────────
-
 sentence-transformers
 
 # ── PDF loading (text-based PDFs) ────────────────────────────────────────────
@@ -27,12 +26,18 @@ pdf2image
 # Image processing
 Pillow
 
-# ── Week 1: Hybrid Search ────────────────────────────────────────────────────
+# ── Hybrid Search ────────────────────────────────────────────────────────────
 # BM25 keyword retrieval for hybrid search (RRF fusion with FAISS)
 rank-bm25
+
+# ── Evaluation & data ────────────────────────────────────────────────────────
 ragas
 datasets
 pandas
+
+# ── Vector store ─────────────────────────────────────────────────────────────
 chromadb
 langchain-chroma
+
+# ── Tokenizer ────────────────────────────────────────────────────────────────
 tokenizers==0.21.1

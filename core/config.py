@@ -26,8 +26,26 @@ LLM_MODEL       = "llama-3.3-70b-versatile"
 LLM_TEMPERATURE = 0.7
 
 # ── Chunking Settings ─────────────────────────────────────────────────────────
-CHUNK_SIZE    = 800
-CHUNK_OVERLAP = 100
+# CHUNKING_MODE: "semantic" uses section-aware + SemanticChunker (recommended).
+#                "recursive" uses the original RecursiveCharacterTextSplitter.
+#                Switch to "recursive" if langchain-experimental is not installed.
+CHUNKING_MODE  : str = os.getenv("CHUNKING_MODE", "semantic")
+
+# Hard upper/lower bounds on chunk size (used by both modes).
+CHUNK_MAX_CHARS: int = int(os.getenv("CHUNK_MAX_CHARS", "1200"))  # was CHUNK_SIZE=800
+CHUNK_MIN_CHARS: int = int(os.getenv("CHUNK_MIN_CHARS", "80"))    # drop tiny fragments
+CHUNK_OVERLAP  : int = int(os.getenv("CHUNK_OVERLAP",   "100"))
+
+# Keep old names as aliases so any code that still imports them won't break.
+CHUNK_SIZE = CHUNK_MAX_CHARS
+
+# ── Semantic Chunker Settings (only used when CHUNKING_MODE="semantic") ───────
+# SEMANTIC_BREAKPOINT_TYPE options:
+#   "percentile"         — split where similarity drop > Nth percentile (default)
+#   "standard_deviation" — split where drop > mean + N * std_dev
+#   "interquartile"      — split where drop > Q3 + N * IQR
+SEMANTIC_BREAKPOINT_TYPE     : str   = os.getenv("SEMANTIC_BREAKPOINT_TYPE", "percentile")
+SEMANTIC_BREAKPOINT_THRESHOLD: float = float(os.getenv("SEMANTIC_BREAKPOINT_THRESHOLD", "95"))
 
 # ── Retrieval Settings ────────────────────────────────────────────────────────
 RETRIEVER_K = 6
