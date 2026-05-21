@@ -1,3 +1,4 @@
+git+https://github.com/konduri-lakshmi-prasanna/RAG_pipeline.git
 # ── Core Streamlit & environment ─────────────────────────────────────────────
 streamlit
 python-dotenv
@@ -54,4 +55,3 @@ opentelemetry-sdk>=1.27.0
 # rank-bm25         ← BM25 hybrid search now handled inside rag-core
 # (HybridRetriever in careerbot is deleted; rag-core's rerank stage
 #  uses RRF without needing rank-bm25 as a careerbot dependency)
-git+https://github.com/konduri-lakshmi-prasanna/rag-core.git
