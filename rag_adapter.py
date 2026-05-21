@@ -1,7 +1,7 @@
-from rag_core.default_pipeline import DefaultRAGPipeline
+from rag_core.default_pipeline import DefaultRagPipeline
 
 # Initialize pipeline once (important)
-pipeline = DefaultRAGPipeline()
+pipeline = DefaultRagPipeline(collection_name="careerbot")
 
 def ask(query: str) -> str:
     """
