@@ -1,10 +1,17 @@
 """
-sidebar.py — Sidebar components and file uploading logic.
+ui/sidebar.py  ←  CHANGED
 
-PERSISTENT RAG: Uploaded documents are ADDED to the existing ChromaDB index.
-Previously indexed files are never deleted unless the user explicitly clears
-the knowledge base. This means the bot remembers all past uploads across
-app restarts.
+What changed and why
+─────────────────────
+BEFORE: _handle_rebuild() received (chain, retriever, errors) from
+        rebuild_knowledge_base() and called set_chain(chain, retriever).
+        _try_load_existing() received (chain, retriever) and called set_chain().
+
+AFTER:  _handle_rebuild() receives only errors from rebuild_knowledge_base().
+        _try_load_existing() receives only a bool from load_existing_knowledge_base().
+        Both call set_kb_ready(True/False) — that's all the UI needs.
+        No chain or retriever ever touches the sidebar.
+        Layout, branding, upload logic — all unchanged.
 """
 
 import os
@@ -15,21 +22,15 @@ from core.ocr import IMAGE_EXTENSIONS, is_image_file
 from core.loaders import describe_file_type
 from core.vectorstore import clear_index
 from services.pipeline import rebuild_knowledge_base, load_existing_knowledge_base
-from ui.state import set_chain, add_uploaded_file, clear_chat
+from ui.state import set_kb_ready, add_uploaded_file, clear_chat
 
 _UPLOAD_TYPES = ["pdf", "txt"] + [ext.lstrip(".") for ext in IMAGE_EXTENSIONS]
-
 SUPPORTED_EXTS = {".pdf", ".txt"} | {e for e in IMAGE_EXTENSIONS}
 
 
 def _clear_all_knowledge():
-    """
-    Wipe ChromaDB collection AND delete all files from the data folder.
-    This is a full reset — call only when the user explicitly requests it.
-    """
-    # Clear ChromaDB
+    """Wipe ChromaDB collection AND delete all files from the data folder."""
     clear_index()
-    # Delete files from data folder
     for fname in os.listdir(DATA_FOLDER):
         if os.path.splitext(fname)[1].lower() in SUPPORTED_EXTS:
             try:
@@ -37,8 +38,7 @@ def _clear_all_knowledge():
             except Exception:
                 pass
     st.session_state.uploaded_files = []
-    st.session_state.rag_chain = None
-    st.session_state.rag_retriever = None
+    set_kb_ready(False)
 
 
 def _has_ocr_files() -> bool:
@@ -51,9 +51,10 @@ def _has_ocr_files() -> bool:
 def _handle_rebuild(spinner_msg: str):
     with st.spinner(spinner_msg):
         try:
-            chain, retriever, errors = rebuild_knowledge_base()
-            if chain:
-                set_chain(chain, retriever)
+            errors = rebuild_knowledge_base()          # ← returns only errors now
+            kb_loaded = load_existing_knowledge_base() # ← returns bool
+            if kb_loaded:
+                set_kb_ready(True)                     # ← replaces set_chain()
                 st.success("✅ Knowledge base ready!")
             else:
                 st.error("❌ No valid documents found in the data folder.")
@@ -67,12 +68,12 @@ def _handle_rebuild(spinner_msg: str):
 
 def _try_load_existing():
     """On first page load, silently restore a previously built index."""
-    if st.session_state.rag_chain is not None:
+    if st.session_state.kb_ready:
         return
     try:
-        chain, retriever = load_existing_knowledge_base()
-        if chain:
-            set_chain(chain, retriever)
+        is_loaded = load_existing_knowledge_base()     # ← returns bool
+        if is_loaded:
+            set_kb_ready(True)                         # ← replaces set_chain()
             if not st.session_state.uploaded_files:
                 for fname in os.listdir(DATA_FOLDER):
                     if os.path.splitext(fname)[1].lower() in SUPPORTED_EXTS:
@@ -101,7 +102,7 @@ def render_sidebar():
 
         st.divider()
 
-        # ── Upload section ─────────────────────────────────────────────────────
+        # ── Upload section ────────────────────────────────────────────────────
         st.markdown("""
         <div style="font-size:13px; font-weight:600; color:#fff; margin-bottom:0.5rem;">
             📂 Upload Documents
@@ -122,7 +123,6 @@ def render_sidebar():
         )
 
         if uploaded:
-            # PERSISTENT: do NOT clear old files — add new ones to the existing index
             new_files, ocr_files = [], []
             for file in uploaded:
                 save_path = os.path.join(DATA_FOLDER, file.name)
@@ -158,12 +158,12 @@ def render_sidebar():
             st.success("✅ Knowledge base cleared. Upload new documents to start fresh.")
             st.rerun()
 
-        if st.session_state.rag_chain is None:
+        if not st.session_state.kb_ready:
             st.info("💡 Upload documents above — the knowledge base builds automatically.")
 
         st.divider()
 
-        # ── File list ──────────────────────────────────────────────────────────
+        # ── File list ─────────────────────────────────────────────────────────
         if st.session_state.uploaded_files:
             st.markdown(
                 "<div style='font-size:13px; font-weight:600; color:#fff; margin-bottom:0.5rem;'>"
@@ -183,8 +183,8 @@ def render_sidebar():
                 )
             st.markdown("<br>", unsafe_allow_html=True)
 
-        # ── Status bar ─────────────────────────────────────────────────────────
-        if st.session_state.rag_chain:
+        # ── Status bar ────────────────────────────────────────────────────────
+        if st.session_state.kb_ready:
             extra = " + OCR" if _has_ocr_files() else ""
             st.markdown(f"""
             <div class="status-bar ready">

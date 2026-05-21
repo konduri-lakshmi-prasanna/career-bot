@@ -1,10 +1,19 @@
 """
-tabs.py — Streamlit tab rendering.
+ui/tabs.py  ←  CHANGED
 
-Changes vs original:
-  • render_career_chat_tab() calls core.chain.ask() which injects memory.
-  • _show_source_chunks() works with both FAISS retriever and HybridRetriever.
-  • append_message() from state.py replaces direct list append (enforces trim).
+What changed and why
+─────────────────────
+BEFORE: render_career_chat_tab() called ask(chain, retriever, question, messages)
+        — pulling chain and retriever out of session_state.
+        _show_source_chunks() pulled st.session_state.retriever directly.
+
+AFTER:  render_career_chat_tab() calls run_query(user_input) — one call,
+        all 6 rag-core stages run internally.
+        _show_source_chunks() calls pipeline.retrieve(query) directly to
+        show the same chunks the pipeline used.
+        All st.session_state.rag_chain / .retriever references removed.
+        Replaced with st.session_state.kb_ready (bool) checks only.
+        UI layout, markdown, widgets — all unchanged.
 """
 
 import streamlit as st
@@ -15,7 +24,7 @@ from core.prompts import (
     career_roadmap_prompt,
     job_match_prompt,
 )
-from core.chain import ask
+from services.pipeline import get_pipeline, run_query
 from services.actions import run_quick_action
 from ui.state import set_quick_result, append_message
 
@@ -23,18 +32,23 @@ from ui.state import set_quick_result, append_message
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
 def _show_source_chunks(query: str):
-    """Render an expander showing the retrieved source chunks."""
+    """Show retrieved chunks. Uses pipeline.retrieve() — same Stage 2 the
+    pipeline used — so displayed chunks are always consistent with the answer."""
     with st.expander("📄 Source chunks used"):
-        retriever = st.session_state.retriever
-        if retriever:
-            # HybridRetriever exposes .invoke(); FAISS retriever also does
-            docs = retriever.invoke(query) if hasattr(retriever, "invoke") else retriever.get_relevant_documents(query)
-            if docs:
-                for i, doc in enumerate(docs, 1):
-                    src = doc.metadata.get("source_file", doc.metadata.get("source", ""))
-                    st.markdown(f"**Chunk {i}** _(from {src})_: {doc.page_content[:300]}…")
-            else:
-                st.warning("No relevant content found in uploaded documents.")
+        if not st.session_state.kb_ready:
+            st.warning("No knowledge base loaded.")
+            return
+        pipeline = get_pipeline()
+        raw_chunks = pipeline.retrieve(query)        # list[dict] from rag-core
+        if raw_chunks:
+            for i, chunk in enumerate(raw_chunks[:6], 1):
+                src = chunk.get("metadata", {}).get(
+                    "source_file",
+                    chunk.get("metadata", {}).get("source", "unknown")
+                )
+                st.markdown(f"**Chunk {i}** _(from {src})_: {chunk['text'][:300]}…")
+        else:
+            st.warning("No relevant content found in uploaded documents.")
 
 
 # ── Tab renderers ─────────────────────────────────────────────────────────────
@@ -57,25 +71,15 @@ def render_career_chat_tab():
     user_input = st.chat_input("Ask me anything — e.g. What career suits me based on my resume?")
 
     if user_input:
-        # Show user bubble immediately
         with st.chat_message("user"):
             st.markdown(user_input)
 
-        # Build history BEFORE appending this turn (so it's "prior" context)
-        prior_messages = list(st.session_state.messages)
-
-        # Save user message (with memory trimming)
         append_message("user", user_input)
 
         with st.chat_message("assistant"):
-            if st.session_state.rag_chain and st.session_state.retriever:
+            if st.session_state.kb_ready:
                 with st.spinner("Retrieving from your documents…"):
-                    response = ask(
-                        chain=st.session_state.rag_chain,
-                        retriever=st.session_state.retriever,
-                        question=user_input,
-                        messages=prior_messages,
-                    )
+                    response = run_query(user_input)   # ← all 6 rag-core stages
                     st.markdown(response)
                 _show_source_chunks(user_input)
             else:
@@ -86,7 +90,6 @@ def render_career_chat_tab():
                 )
                 st.warning(response)
 
-        # Save assistant reply (with memory trimming)
         append_message("assistant", response)
 
 

@@ -1,53 +1,38 @@
 """
-actions.py — Shared business-logic actions used by the UI tabs.
+services/actions.py  ←  CHANGED
 
-Changes vs original:
-  • run_quick_action() now retrieves docs manually and passes the full
-    {context, question, history} dict that the updated PromptTemplate expects.
-    Quick-action tabs (resume score, interview prep, etc.) don't use chat
-    history, so history is passed as an empty string.
+What changed and why
+─────────────────────
+BEFORE: Directly accessed st.session_state.rag_chain and
+        st.session_state.retriever. Called retriever.invoke(query)
+        then chain.invoke({context, question, history}) manually.
+        UI layer was tightly coupled to LangChain internals.
+
+AFTER:  Calls run_query(prompt) — one call that runs all 6 rag-core
+        stages and returns the final answer string.
+        No chain, no retriever, no session_state RAG objects needed here.
 """
 
 import streamlit as st
-from core.chain import _format_docs
+from services.pipeline import load_existing_knowledge_base, run_query
 
 
 def run_quick_action(query: str) -> str:
     """
-    Execute a prompt against the current RAG chain.
+    Execute a fully-formed prompt through the 6-stage RAG pipeline.
 
     Args:
-        query: The fully-formed prompt string to send to the chain.
+        query: The fully-formed prompt string (built by prompts.py).
 
     Returns:
-        The LLM response string, or a helpful fallback message if no
-        knowledge base is loaded.
+        The LLM response string, or a fallback if no KB is loaded.
     """
-    if not st.session_state.rag_chain:
+    if not load_existing_knowledge_base():
         return (
             "📂 No documents uploaded yet. Please upload your **Resume**, "
             "**Marksheet**, or **Certificates** (PDF or TXT) in the sidebar "
             "and click **⚡ Build Knowledge Base** before using this feature."
         )
 
-    retriever = st.session_state.retriever
-
     with st.spinner("Analysing your documents…"):
-        # Retrieve relevant chunks
-        if retriever:
-            docs = (
-                retriever.invoke(query)
-                if hasattr(retriever, "invoke")
-                else retriever.get_relevant_documents(query)
-            )
-        else:
-            docs = []
-
-        context = _format_docs(docs)
-
-        # Quick actions don't have chat history — pass empty string
-        return st.session_state.rag_chain.invoke({
-            "context":  context,
-            "question": query,
-            "history":  "",
-        })
+        return run_query(query)

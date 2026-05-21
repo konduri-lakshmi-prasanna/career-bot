@@ -1,64 +1,56 @@
 """
-pipeline.py — Knowledge-base build pipeline.
+services/pipeline.py  ←  CHANGED
 
-Changes vs original:
-  • build_index() now returns (vectorstore, all_chunks, errors).
-  • rebuild_knowledge_base() passes all_chunks to build_chain() so the
-    HybridRetriever can be constructed in one go.
+What changed and why
+─────────────────────
+BEFORE: rebuild_knowledge_base() returned (chain, retriever, errors).
+        load_existing_knowledge_base() returned (chain, retriever).
+        Callers stored chain + retriever in session_state manually.
+
+AFTER:  rebuild_knowledge_base() returns only errors.
+        load_existing_knowledge_base() returns a bool.
+        run_query(query) is the single entry point for all chat queries —
+        it calls pipeline.run() which executes all 6 rag-core stages.
+        No chain or retriever ever leaks into the UI layer.
 """
 
-from typing import Optional, Tuple, List
+from core.careerbot_pipeline import CareerBotPipeline
+from rag_core.db.chromadb_store import get_collection
 
-from langchain_core.documents import Document
-
-from core.vectorstore import build_index, load_index
-from core.chain import build_chain
+_pipeline: CareerBotPipeline | None = None
 
 
-def rebuild_knowledge_base() -> Tuple[Optional[object], Optional[object], list]:
+def get_pipeline() -> CareerBotPipeline:
+    """Return (or create) the singleton CareerBotPipeline."""
+    global _pipeline
+    if _pipeline is None:
+        _pipeline = CareerBotPipeline()
+    return _pipeline
+
+
+def rebuild_knowledge_base() -> list:
     """
-    Full pipeline: rebuild the FAISS index from all documents in the data
-    folder, then construct a fresh RAG chain (with hybrid retrieval).
-
-    Returns:
-        (chain, retriever, errors)
-        chain     — the LangChain RAG chain, or None on failure
-        retriever — HybridRetriever or FAISS retriever, or None on failure
-        errors    — list of human-readable warning / error strings
+    Rebuild the knowledge base. Returns list of error strings.
     """
-    vectorstore, all_chunks, errors = build_index()
-
-    if vectorstore is None:
-        return None, None, errors
-
-    chain, retriever = build_chain(vectorstore, all_chunks)
-    return chain, retriever, errors
+    pipeline = get_pipeline()
+    return pipeline.rebuild()
 
 
-def load_existing_knowledge_base() -> Tuple[Optional[object], Optional[object]]:
+def load_existing_knowledge_base() -> bool:
     """
-    Load an already-built index and wire up the chain without re-indexing.
-
-    Returns:
-        (chain, retriever) — both None if no index found.
+    Returns True if the ChromaDB collection exists and has documents.
     """
-    vectorstore, all_chunks = load_index()
-    if vectorstore is None:
-        return None, None
+    try:
+        collection = get_collection(CareerBotPipeline.COLLECTION)
+        return collection.count() > 0
+    except Exception:
+        return False
 
-    chain, retriever = build_chain(vectorstore, all_chunks)
-    return chain, retriever
 
-
-if __name__ == "__main__":
-    # CLI entry-point for manual re-indexing
-    print("🚀 Rebuilding knowledge base…")
-    chain, retriever, errors = rebuild_knowledge_base()
-    if chain:
-        print("✨ Knowledge base is ready!")
-    else:
-        print("❌ No valid documents could be loaded.")
-    if errors:
-        print("⚠️  Warnings:")
-        for err in errors:
-            print(f"   • {err}")
+def run_query(query: str) -> str:
+    """
+    Run the full 6-stage RAG pipeline for a user query.
+    Stages: rewrite → retrieve → rerank → refine → generate
+    """
+    pipeline = get_pipeline()
+    return pipeline.run(query)
