@@ -2,7 +2,16 @@
 streamlit
 python-dotenv
 
+# ── rag-core (shared RAG pipeline) ───────────────────────────────────────────
+# Install as editable so careerbot can import rag_core directly.
+# From the careerbot project root run:
+#   pip install -e ../rag-core
+# Or if rag-core is published to PyPI:
+#   rag-core
+
 # ── LLM / LangChain stack ────────────────────────────────────────────────────
+# These are also declared in rag-core/requirements.txt but listed here
+# so careerbot can be installed standalone without rag-core's pyproject.
 groq
 langchain>=0.3.0
 langchain-core>=0.3.0
@@ -10,38 +19,38 @@ langchain-community>=0.3.0
 langchain-groq
 langchain-huggingface
 
-# ── Vector store & embeddings ────────────────────────────────────────────────
+# ── Vector store & embeddings ─────────────────────────────────────────────────
+chromadb==1.5.9
+langchain-chroma==1.1.0
 sentence-transformers
 
-# ── PDF loading (text-based PDFs) ────────────────────────────────────────────
+# ── PDF loading (text-based PDFs) ─────────────────────────────────────────────
 pypdf
 
-# ── OCR stack ────────────────────────────────────────────────────────────────
-# Tesseract wrapper (requires system package: sudo apt-get install tesseract-ocr)
+# ── OCR stack ─────────────────────────────────────────────────────────────────
+# Requires system packages:
+#   sudo apt-get install -y tesseract-ocr poppler-utils
 pytesseract
-
-# PDF → image rasteriser (requires system package: sudo apt-get install poppler-utils)
 pdf2image
-
-# Image processing
 Pillow
 
-# ── Hybrid Search ────────────────────────────────────────────────────────────
-rank-bm25
+# ── Semantic chunking ─────────────────────────────────────────────────────────
+langchain-experimental
 
-# ── Evaluation & data ────────────────────────────────────────────────────────
+# ── Evaluation & data ─────────────────────────────────────────────────────────
 ragas
 datasets
 pandas
 
-# ── Vector store ─────────────────────────────────────────────────────────────
-chromadb==1.5.9
-langchain-chroma==1.1.0
-
-# ── Tokenizer ────────────────────────────────────────────────────────────────
+# ── Tokenizer ─────────────────────────────────────────────────────────────────
 tokenizers==0.21.1
 
-# ── Telemetry / protobuf compatibility (Streamlit Cloud / Python 3.14 fix) ───
+# ── Telemetry / protobuf compatibility ────────────────────────────────────────
 protobuf>=4.25.3,<5.0.0
 opentelemetry-exporter-otlp-proto-grpc>=1.27.0
 opentelemetry-sdk>=1.27.0
+
+# ── REMOVED from original requirements.txt ───────────────────────────────────
+# rank-bm25         ← BM25 hybrid search now handled inside rag-core
+# (HybridRetriever in careerbot is deleted; rag-core's rerank stage
+#  uses RRF without needing rank-bm25 as a careerbot dependency)

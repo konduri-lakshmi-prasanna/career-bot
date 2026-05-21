@@ -1,19 +1,26 @@
 """
-careerbot_pipeline.py
+careerbot_pipeline.py  ←  CHANGED
 
-Careerbot's own pipeline extending the shared rag-core.
-This is the Open/Closed Principle:
-  - rag-core (IRagPipeline) never changes
-  - CareerBotPipeline extends it with careerbot-specific behaviour
+What changed and why
+─────────────────────
+BEFORE: overrode retrieve() with HybridRetriever, generate() with LangChain
+        chain, and insert() with a local helper. Imported from core.vectorstore,
+        core.chain, core.hybrid_retriever.
+
+AFTER:  Only overrides what is genuinely careerbot-specific:
+        • __init__  — collection name, top_k, system prompt
+        • retrieve() — delegates to rag_core.stages.retrieval
+        • rebuild() — uses careerbot loaders/chunkers, then rag_core insert
+        generate(), rewrite(), rerank(), refine(), insert() are all
+        inherited from DefaultRagPipeline unchanged.
 """
 
 from rag_core.default_pipeline import DefaultRagPipeline
-from core.vectorstore import build_index, load_index, get_embeddings
-from core.chunkers import chunk_documents
+from rag_core.stages.insert import insert_document
+from rag_core.stages.retrieval import retrieve_chunks
+
 from core.loaders import load_documents
-from core.chain import ask, build_chain, get_llm
-from core.hybrid_retriever import build_hybrid_retriever
-from core.config import RETRIEVER_K
+from core.chunkers import chunk_documents
 
 
 CAREERBOT_SYSTEM_PROMPT = """You are CareerBot — an AI career guidance assistant.
@@ -26,66 +33,55 @@ If you don't have enough information, say so clearly."""
 class CareerBotPipeline(DefaultRagPipeline):
     """
     Careerbot's custom RAG pipeline.
-    Extends DefaultRagPipeline with careerbot-specific settings.
-    Uses careerbot's own ChromaDB, hybrid retriever, and chunker.
+    Extends DefaultRagPipeline — only careerbot-specific behaviour lives here.
+    All 6 rag-core stages run via pipeline.run(query).
     """
+
+    COLLECTION = "careerbot"
 
     def __init__(self):
         super().__init__(
-            collection_name="careerbot",
+            collection_name=self.COLLECTION,
             top_k=6,
             rerank_strategy="rrf",
             context_hint="career guidance, resume analysis, placement preparation",
             system_prompt=CAREERBOT_SYSTEM_PROMPT,
         )
-        # careerbot uses its own vectorstore and hybrid retriever
-        self._vectorstore = None
-        self._retriever = None
-        self._chain = None
-        self._load_existing()
 
-    def _load_existing(self):
-        """Load existing ChromaDB index on startup."""
-        try:
-            vectorstore, all_chunks = load_index()
-            if vectorstore:
-                self._vectorstore = vectorstore
-                self._chain, self._retriever = build_chain(vectorstore, all_chunks)
-        except Exception as e:
-            print(f"[careerbot_pipeline] Could not load index: {e}")
-
-    def rebuild(self):
-        """Rebuild the knowledge base from scratch."""
-        vectorstore, all_chunks, errors = build_index()
-        if vectorstore:
-            self._vectorstore = vectorstore
-            self._chain, self._retriever = build_chain(vectorstore, all_chunks)
-        return errors
+    # ── Stage 2 override ─────────────────────────────────────────────────────
 
     def retrieve(self, query: str) -> list:
-        """Stage 2: Use careerbot's own HybridRetriever."""
-        if not self._retriever:
-            return []
-        if hasattr(self._retriever, "invoke"):
-            docs = self._retriever.invoke(query)
-        else:
-            docs = self._retriever.get_relevant_documents(query)
-        # convert LangChain docs to plain dicts for rag-core compatibility
-        return [{"text": d.page_content, "metadata": d.metadata, "distance": 0.5}
-                for d in docs]
+        """
+        Stage 2: Retrieve from careerbot's ChromaDB collection via rag-core.
+        Returns list[dict] with keys: text, metadata, distance.
+        """
+        return retrieve_chunks(
+            query,
+            collection_name=self.COLLECTION,
+            k=self.top_k * 3,
+        )
 
-    def generate(self, query: str, context: str) -> str:
-        """Stage 5: Use careerbot's own LLM chain with memory support."""
-        if self._chain:
-            from core.chain import _format_docs
-            return self._chain.invoke({
-                "context": context,
-                "question": query,
-                "history": "",
-            })
-        return "Knowledge base not loaded. Please upload documents first."
+    # ── Rebuild: careerbot loaders + chunkers → rag-core insert ──────────────
 
-    def insert(self, text: str, metadata: dict = None) -> dict:
-        """Stage 6: Insert document into careerbot's ChromaDB."""
-        from rag_core.stages.insert import insert_document
-        return insert_document(text, "careerbot", metadata=metadata)
+    def rebuild(self) -> list:
+        """
+        1. Load docs via careerbot's loaders (PDF, TXT, OCR).
+        2. Chunk via careerbot's semantic/section-aware chunker.
+        3. Insert each chunk via rag_core.stages.insert.
+        Returns list of loading error strings.
+        """
+        documents, errors = load_documents()
+        if not documents:
+            return errors
+
+        chunks = chunk_documents(documents)
+        for chunk in chunks:
+            insert_document(
+                text=chunk.page_content,
+                collection_name=self.COLLECTION,
+                metadata=dict(chunk.metadata),
+                chunk_size=9999,   # already chunked; send as-is
+                overlap=0,
+                doc_id_prefix="careerbot",
+            )
+        return errors
