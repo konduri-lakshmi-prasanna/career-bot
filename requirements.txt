@@ -49,6 +49,7 @@ tokenizers==0.21.1
 protobuf>=4.25.3,<5.0.0
 opentelemetry-exporter-otlp-proto-grpc>=1.27.0
 opentelemetry-sdk>=1.27.0
+git+https://github.com/konduri-lakshmi-prasanna/RAG_pipeline.git
 
 # ── REMOVED from original requirements.txt ───────────────────────────────────
 # rank-bm25         ← BM25 hybrid search now handled inside rag-core
