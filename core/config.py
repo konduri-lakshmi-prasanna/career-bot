@@ -30,6 +30,13 @@ DATA_FOLDER  = os.path.join(BASE_DIR, "data")
 os.makedirs(DATA_FOLDER,  exist_ok=True)
 os.makedirs(INDEX_FOLDER, exist_ok=True)
 
+# ── Make rag-core use the SAME ChromaDB folder as careerbot ──────────────────
+# rag_core.db.chromadb_store.get_client() reads CHROMA_DB_PATH from the
+# environment. We force it to careerbot's absolute INDEX_FOLDER here so the
+# app works no matter what directory `streamlit run` is launched from (a bare
+# relative path would silently point rag-core at a different, empty database).
+os.environ["CHROMA_DB_PATH"] = INDEX_FOLDER
+
 # ── API Keys ──────────────────────────────────────────────────────────────────
 # rag-core reads GROQ_API_KEY / GOOGLE_API_KEY directly from .env via
 # rag_core.llm.factory.get_llm() — no need to re-read them here.

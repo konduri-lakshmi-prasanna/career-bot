@@ -1,4 +1,3 @@
-git+https://github.com/konduri-lakshmi-prasanna/RAG_pipeline.git
 # ── Core Streamlit & environment ─────────────────────────────────────────────
 streamlit
 python-dotenv
