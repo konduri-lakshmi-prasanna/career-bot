@@ -146,6 +146,11 @@ def render_sidebar():
                         f"🔍 OCR will be applied to: {', '.join(ocr_files)}</div>",
                         unsafe_allow_html=True,
                     )
+                # Auto-wipe the OLD vector index (files on disk are kept).
+                # The rebuild step right after this re-reads every file still
+                # sitting in DATA_FOLDER (old + new) and re-embeds them into
+                # a fresh collection, so nothing stale/duplicated lingers.
+                clear_index()
                 _handle_rebuild("Processing documents (OCR if needed)…")
 
         st.markdown("<div style='margin-top:0.75rem'></div>", unsafe_allow_html=True)
