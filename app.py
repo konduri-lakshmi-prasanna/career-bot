@@ -2,8 +2,14 @@ import streamlit as st
 
 st.set_page_config(page_title="CareerBot")
 
-st.success("Before import")
-
 from ui.styles import get_custom_css
 
-st.success("After import")
+st.success("Imported")
+
+css = get_custom_css()
+
+st.success("CSS Generated")
+
+st.markdown(css, unsafe_allow_html=True)
+
+st.success("CSS Applied")
