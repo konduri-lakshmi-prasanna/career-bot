@@ -12,7 +12,7 @@ FIXES:
 def get_custom_css() -> str:
     return """
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap');
+
 
 /* COMMAND CENTER VARIABLES */
 :root {
