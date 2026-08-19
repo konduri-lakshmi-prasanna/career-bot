@@ -168,6 +168,20 @@ def render_sidebar():
 
         st.divider()
 
+        # ── Web Search Toggle ──────────────────────────────────────────────────
+        st.markdown("""
+        <div style="font-size:13px; font-weight:600; color:#fff; margin-bottom:0.5rem;">
+            🔍 Web Intelligence
+        </div>
+        """, unsafe_allow_html=True)
+        st.checkbox(
+            "🌐 Enable Web Search (DuckDuckGo)",
+            key="web_search_enabled",
+            help="Allows the bot to search the web for external information, trends, and job listings."
+        )
+
+        st.divider()
+
         # ── File list ─────────────────────────────────────────────────────────
         if st.session_state.uploaded_files:
             st.markdown(
@@ -189,19 +203,27 @@ def render_sidebar():
             st.markdown("<br>", unsafe_allow_html=True)
 
         # ── Status bar ────────────────────────────────────────────────────────
+        web_status = " + Web Search" if st.session_state.web_search_enabled else ""
         if st.session_state.kb_ready:
             extra = " + OCR" if _has_ocr_files() else ""
             st.markdown(f"""
             <div class="status-bar ready">
                 <div class="status-dot"></div>
-                RAG Mode — Document Based{extra}
+                RAG Mode — Docs{extra}{web_status}
             </div>""", unsafe_allow_html=True)
         else:
-            st.markdown("""
-            <div class="status-bar idle">
-                <div class="status-dot"></div>
-                No knowledge base loaded
-            </div>""", unsafe_allow_html=True)
+            if st.session_state.web_search_enabled:
+                st.markdown("""
+                <div class="status-bar ready" style="border-color: #00FFCC; background-color: rgba(0, 255, 204, 0.05);">
+                    <div class="status-dot" style="background-color: #00FFCC; box-shadow: 0 0 8px #00FFCC;"></div>
+                    RAG Mode — Web Search Only
+                </div>""", unsafe_allow_html=True)
+            else:
+                st.markdown("""
+                <div class="status-bar idle">
+                    <div class="status-dot"></div>
+                    No knowledge base loaded
+                </div>""", unsafe_allow_html=True)
 
         st.markdown("<br>", unsafe_allow_html=True)
         st.caption(f"📁 `{DATA_FOLDER}`")

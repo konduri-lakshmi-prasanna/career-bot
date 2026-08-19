@@ -19,10 +19,11 @@ from core.memory import trim_history, load_history, save_history
 def init_state():
     """Initialise all session state keys with defaults."""
     defaults = {
-        "messages":       load_history(),   # loaded from disk on startup
-        "kb_ready":       False,            # True once KB is confirmed loaded
-        "uploaded_files": [],
-        "quick_result":   None,
+        "messages":           load_history(),   # loaded from disk on startup
+        "kb_ready":           False,            # True once KB is confirmed loaded
+        "uploaded_files":     [],
+        "quick_result":       None,
+        "web_search_enabled": True,             # Web search enabled by default
     }
     for key, value in defaults.items():
         if key not in st.session_state:

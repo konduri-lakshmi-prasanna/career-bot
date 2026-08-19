@@ -35,20 +35,23 @@ def _show_source_chunks(query: str):
     """Show retrieved chunks. Uses pipeline.retrieve() — same Stage 2 the
     pipeline used — so displayed chunks are always consistent with the answer."""
     with st.expander("📄 Source chunks used"):
-        if not st.session_state.kb_ready:
-            st.warning("No knowledge base loaded.")
+        if not st.session_state.kb_ready and not st.session_state.web_search_enabled:
+            st.warning("No knowledge base loaded and web search is disabled.")
             return
         pipeline = get_pipeline()
         raw_chunks = pipeline.retrieve(query)        # list[dict] from rag-core
         if raw_chunks:
             for i, chunk in enumerate(raw_chunks[:6], 1):
-                src = chunk.get("metadata", {}).get(
-                    "source_file",
-                    chunk.get("metadata", {}).get("source", "unknown")
-                )
-                st.markdown(f"**Chunk {i}** _(from {src})_: {chunk['text'][:300]}…")
+                metadata = chunk.get("metadata", {})
+                src = metadata.get("source_file", metadata.get("source", "unknown"))
+                if src == "web_search":
+                    title = metadata.get("title", "Web Page")
+                    url = metadata.get("url", "#")
+                    st.markdown(f"**Chunk {i}** _(from Web Search: [{title}]({url}))_: {chunk['text'][:300]}…")
+                else:
+                    st.markdown(f"**Chunk {i}** _(from document: {src})_: {chunk['text'][:300]}…")
         else:
-            st.warning("No relevant content found in uploaded documents.")
+            st.warning("No relevant content found in uploaded documents or web search.")
 
 
 # ── Tab renderers ─────────────────────────────────────────────────────────────
@@ -58,7 +61,7 @@ def render_career_chat_tab():
     <div class="dash-card card-blue" style="margin-bottom: 20px;">
         <div class="card-icon">💬</div>
         <div class="card-title">COMMS LINK</div>
-        <div class="card-value" style="font-size: 18px;">Chat with Your Documents</div>
+        <div class="card-value" style="font-size: 18px;">Chat with Your Documents & Web Search</div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -77,16 +80,20 @@ def render_career_chat_tab():
         append_message("user", user_input)
 
         with st.chat_message("assistant"):
-            if st.session_state.kb_ready:
-                with st.spinner("Retrieving from your documents…"):
+            if st.session_state.kb_ready or st.session_state.web_search_enabled:
+                spinner_msg = (
+                    "Retrieving from your documents & searching the web…"
+                    if (st.session_state.kb_ready and st.session_state.web_search_enabled)
+                    else ("Searching the web…" if st.session_state.web_search_enabled else "Retrieving from your documents…")
+                )
+                with st.spinner(spinner_msg):
                     response = run_query(user_input)   # ← all 6 rag-core stages
                     st.markdown(response)
                 _show_source_chunks(user_input)
             else:
                 response = (
-                    "📂 No knowledge base found. Please upload your **Resume**, "
-                    "**Marksheet**, or **Certificates** (PDF/TXT) in the sidebar "
-                    "to enable document-based answers."
+                    "📂 No knowledge base found and web search is disabled. Please upload your **Resume**, "
+                    "**Marksheet**, or **Certificates** (PDF/TXT) in the sidebar, or enable **Web Search**."
                 )
                 st.warning(response)
 

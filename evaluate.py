@@ -19,9 +19,8 @@ load_dotenv()
 # ── Make sure core/ and services/ are importable ──────────────────────────────
 sys.path.insert(0, os.path.dirname(__file__))
 
-from services.pipeline import load_existing_knowledge_base
-from core.chain import ask
-from core.vectorstore import get_embeddings
+from services.pipeline import load_existing_knowledge_base, run_query, get_pipeline
+from rag_core.db.chromadb_store import get_embeddings
 
 from datasets import Dataset
 from ragas import evaluate
@@ -33,18 +32,16 @@ from ragas.metrics import (
 )
 from ragas.llms import LangchainLLMWrapper
 from ragas.embeddings import LangchainEmbeddingsWrapper
-from core.chain import get_llm
+from rag_core.llm.factory import get_llm
 
 # ── Load existing RAG pipeline ────────────────────────────────────────────────
 print("⏳ Loading knowledge base...")
-chain, retriever = load_existing_knowledge_base()
+kb_exists = load_existing_knowledge_base()
 
-if chain is None or retriever is None:
-    print("❌ No knowledge base found!")
-    print("👉 Upload documents in the app and click 'Build Knowledge Base' first.")
-    sys.exit(1)
-
-print("✅ Knowledge base loaded successfully!")
+if not kb_exists:
+    print("⚠️ No local knowledge base found! Web search will be used as fallback.")
+else:
+    print("✅ Knowledge base loaded successfully!")
 
 # ── Test Dataset — 10 Career Guidance Questions ───────────────────────────────
 # ground_truth = the correct expected answer
@@ -107,16 +104,13 @@ for i, item in enumerate(test_dataset, 1):
     ground_truth = item["ground_truth"]
 
     try:
-        # Use your existing ask() function — exactly like the app does
-        answer = ask(chain, retriever, question, messages=[])
+        # Run through the pipeline exactly like the app does
+        answer = run_query(question)
 
         # Get retrieved context chunks
-        if hasattr(retriever, "invoke"):
-            retrieved_docs = retriever.invoke(question)
-        else:
-            retrieved_docs = retriever.get_relevant_documents(question)
-
-        context = [doc.page_content for doc in retrieved_docs]
+        pipeline = get_pipeline()
+        retrieved_docs = pipeline.retrieve(question)
+        context = [doc.get("text", "") if isinstance(doc, dict) else getattr(doc, "page_content", str(doc)) for doc in retrieved_docs]
 
         questions.append(question)
         answers.append(answer)

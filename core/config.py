@@ -43,7 +43,7 @@ os.environ["CHROMA_DB_PATH"] = INDEX_FOLDER
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 
 # ── LLM Settings (kept for reference / evaluate.py) ──────────────────────────
-LLM_MODEL       = "llama-3.3-70b-versatile"
+LLM_MODEL       = "openai/gpt-oss-120b"
 LLM_TEMPERATURE = 0.7
 
 # ── Chunking Settings ─────────────────────────────────────────────────────────

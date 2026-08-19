@@ -23,11 +23,35 @@ from core.loaders import load_documents
 from core.chunkers import chunk_documents
 
 
-CAREERBOT_SYSTEM_PROMPT = """You are CareerBot — an AI career guidance assistant.
-You help students with resume analysis, interview preparation,
-career path guidance, and job search strategies.
-Answer ONLY using the provided context. Do not hallucinate.
-If you don't have enough information, say so clearly."""
+CAREERBOT_SYSTEM_PROMPT = """You are CareerBot, an AI career guidance assistant.
+
+You will receive CONTEXT containing information retrieved from the user's uploaded
+documents such as their resume, education, skills, projects, experience, and achievements.
+
+IMPORTANT RULES:
+
+1. Treat the retrieved CONTEXT as the user's actual profile.
+2. For personal questions such as:
+   - "What career suits me?"
+   - "What jobs are suitable for me?"
+   - "What are my strengths?"
+   - "What skills do I have?"
+   - "What should I prepare for?"
+   use the user's uploaded-document information from CONTEXT.
+3. Do NOT say that the user's education, skills, or experience are unavailable if those
+   details are present anywhere in CONTEXT.
+4. Base factual claims about the user ONLY on CONTEXT.
+5. You may reason over the information in CONTEXT. For example, if the resume contains
+   Java, Python, React, FastAPI, AI/RAG projects, and full-stack experience, you may
+   conclude that software engineering, full-stack development, and AI-oriented roles
+   are relevant career directions.
+6. Do not invent qualifications, experience, companies, salaries, or achievements that
+   are not present in CONTEXT.
+7. If the context genuinely does not contain enough information, clearly say what is
+   missing.
+8. Give a direct, personalized answer rather than asking the user to repeat information
+   that is already present in CONTEXT.
+"""
 
 
 class CareerBotPipeline(DefaultRagPipeline):
@@ -53,13 +77,40 @@ class CareerBotPipeline(DefaultRagPipeline):
     def retrieve(self, query: str) -> list:
         """
         Stage 2: Retrieve from careerbot's ChromaDB collection via rag-core.
+        Also retrieves from the web if web search is enabled or if local documents are empty.
         Returns list[dict] with keys: text, metadata, distance.
         """
-        return retrieve_chunks(
-            query,
-            collection_name=self.COLLECTION,
-            k=self.top_k * 3,
-        )
+        # 1. Retrieve from local database (if documents are uploaded)
+        chunks = []
+        try:
+            chunks = retrieve_chunks(
+                query,
+                collection_name=self.COLLECTION,
+                k=self.top_k * 3,
+            )
+        except Exception as e:
+            print(f"[pipeline] ChromaDB retrieval failed: {e}")
+
+        # 2. Check if web search should be used
+        web_search_enabled = False
+        try:
+            import streamlit as st
+            # Default to True if st is active but state doesn't have it yet
+            web_search_enabled = st.session_state.get("web_search_enabled", True)
+        except Exception:
+            # Safe default outside Streamlit (e.g. testing / evaluation)
+            web_search_enabled = False
+
+        # If local DB is empty, auto-fallback to web search even if toggle is off
+        # so the user can still get answers.
+        local_db_empty = len(chunks) == 0
+        if web_search_enabled or local_db_empty:
+            from core.web_search import search_web
+            web_chunks = search_web(query, max_results=self.top_k)
+            # Combine chunks. Rerank (Stage 3) will handle filtering and ranking them!
+            chunks.extend(web_chunks)
+
+        return chunks
 
     # ── Rebuild: careerbot loaders + chunkers → rag-core insert ──────────────
 
